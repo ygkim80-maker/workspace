@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ZENIEL WORKSPACE</title>
+<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">ZENIEL<span>WORKSPACE</span></div>
+    <nav class="nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📊 대시보드</div>
+      <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
+      <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
+      <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline')">🔀 파이프라인</div>
+      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트 현황</div>
+      <div class="nav-item" data-page="contracts" onclick="navigate('contracts')">📄 계약관리</div>
+      <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장관리</div>
+      <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈관리</div>
+      <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">🤝 미팅관리</div>
+      <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
+      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
+      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
+      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 메모·인사이트</div>
+      <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h2 id="page-title">대시보드</h2>
+      <div class="search-wrap">
+        <input id="search-input" type="text" placeholder="통합검색..." oninput="onSearch(this.value)"/>
+        <div id="search-results" class="search-results"></div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section id="page-dashboard" class="page active">
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">리드</span><span class="kpi-value" id="kpi-leads">0</span></div>
+          <div class="kpi-card"><span class="kpi-label">진행 프로젝트</span><span class="kpi-value" id="kpi-projects">0</span></div>
+          <div class="kpi-card"><span class="kpi-label">미완료 할일</span><span class="kpi-value" id="kpi-tasks">0</span></div>
+          <div class="kpi-card"><span class="kpi-label">누적 매출</span><span class="kpi-value" id="kpi-revenue">0</span></div>
+        </div>
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>파이프라인 요약</h3></div>
+            <div id="pipeline-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>최근 활동</h3><button class="btn-secondary" onclick="showWeeklyReport()">주간보고</button></div>
+            <div id="timeline" class="timeline"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-leads" class="page">
+        <div class="toolbar">
+          <input id="leads-q" placeholder="회사/담당자 검색" oninput="loadLeads(this.value, document.getElementById('leads-status').value)"/>
+          <select id="leads-status" onchange="loadLeads(document.getElementById('leads-q').value, this.value)">
+            <option value="">전체 상태</option>
+            <option>신규</option><option>접촉중</option><option>미팅완료</option><option>제안</option><option>종료</option>
+          </select>
+          <button class="btn-primary" onclick="addLead()">+ 리드 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>회사명</th><th>담당자</th><th>전화</th><th>이메일</th><th>상태</th><th>출처</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="leads-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-customers" class="page">
+        <div class="toolbar">
+          <input id="customers-q" placeholder="회사/담당자 검색" oninput="loadCustomers(this.value)"/>
+          <button class="btn-primary" onclick="addCustomer()">+ 고객 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>회사명</th><th>담당자</th><th>전화</th><th>이메일</th><th>등급</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="customers-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-pipeline" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addDeal()">+ 딜 추가</button>
+        </div>
+        <div id="kanban-board" class="kanban-board"></div>
+      </section>
+
+      <section id="page-projects" class="page">
+        <div class="toolbar">
+          <input id="projects-q" placeholder="프로젝트명 검색" oninput="loadProjects(this.value, document.getElementById('projects-status').value)"/>
+          <select id="projects-status" onchange="loadProjects(document.getElementById('projects-q').value, this.value)">
+            <option value="">전체 상태</option>
+            <option>진행중</option><option>완료</option><option>보류</option><option>취소</option>
+          </select>
+          <span class="spacer"></span>
+          <span>총 매출: <strong id="projects-total-revenue">0</strong></span>
+          <button class="btn-primary" onclick="addProject()">+ 프로젝트 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>프로젝트명</th><th>유형</th><th>상태</th><th>담당자</th><th>매출</th><th>시작일</th><th>종료일</th><th>관리</th></tr></thead>
+          <tbody id="projects-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-contracts" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addContract()">+ 계약 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>프로젝트</th><th>계약일</th><th>금액</th><th>갱신일</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="contracts-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-sites" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addSite()">+ 현장 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>현장명</th><th>인원</th><th>상태</th><th>담당자</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="sites-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-issues" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addIssue()">+ 이슈 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>제목</th><th>심각도</th><th>처리상태</th><th>담당자</th><th>마감일</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="issues-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-meetings" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addMeeting()">+ 미팅 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>제목</th><th>상대방</th><th>일시</th><th>안건</th><th>결과</th><th>팔로업</th><th>관리</th></tr></thead>
+          <tbody id="meetings-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-emails" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addEmail()">+ 메일 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>수신사</th><th>제목</th><th>발송일</th><th>상태</th><th>메모</th><th>관리</th></tr></thead>
+          <tbody id="emails-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-tasks" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addTask()">+ 할일 추가</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>완료</th><th>제목</th><th>마감일</th><th>우선순위</th><th>담당자</th><th>관리</th></tr></thead>
+          <tbody id="tasks-tbody"></tbody>
+        </table>
+      </section>
+
+      <section id="page-schedules" class="page">
+        <div class="toolbar cal-toolbar">
+          <button class="btn-icon" onclick="prevMonth()">‹</button>
+          <span id="cal-month-title"></span>
+          <button class="btn-icon" onclick="nextMonth()">›</button>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </section>
+
+      <section id="page-insights" class="page">
+        <div class="toolbar">
+          <input id="insights-q" placeholder="제목/내용 검색" oninput="loadInsights(this.value)"/>
+          <button class="btn-primary" onclick="addInsight()">+ 메모 추가</button>
+        </div>
+        <div id="insights-list" class="insights-list"></div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <div class="toolbar">
+          <button class="btn-primary" onclick="addUser()">+ 사용자 추가</button>
+        </div>
+        <div id="user-list" class="user-list"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
