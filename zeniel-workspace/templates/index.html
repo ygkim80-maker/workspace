@@ -25,6 +25,12 @@
       <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
       <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 메모·인사이트</div>
       <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
+      <div class="nav-section-label">물류현장</div>
+      <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 일일 작업관리</div>
+      <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 KPI 현황</div>
+      <div class="nav-section-label">협업</div>
+      <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 문서함</div>
+      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 팀 피드</div>
     </nav>
   </aside>
 
@@ -185,6 +191,133 @@
         <div id="insights-list" class="insights-list"></div>
       </section>
 
+      <!-- ===== 일일 작업관리 ===== -->
+      <section id="page-worklog" class="page">
+        <div class="toolbar">
+          <input id="worklog-date" type="date" onchange="loadWorklog()"/>
+          <select id="worklog-site" onchange="loadWorklog()">
+            <option value="">전체 현장</option>
+          </select>
+          <button class="btn-primary" onclick="addWorklog()">+ 작업 등록</button>
+        </div>
+        <div class="kpi-row" id="worklog-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">오늘 총 목표</span><span class="kpi-value" id="wl-target">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">오늘 실적</span><span class="kpi-value" id="wl-actual">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">달성률</span><span class="kpi-value" id="wl-rate">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">투입인원</span><span class="kpi-value" id="wl-workers">-</span></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>날짜</th><th>현장</th><th>작업유형</th><th>목표량</th><th>실적량</th><th>달성률</th><th>투입인원</th><th>작업시간</th><th>인시생산성</th><th>비고</th><th>관리</th></tr></thead>
+          <tbody id="worklog-tbody"></tbody>
+        </table>
+      </section>
+
+      <!-- ===== KPI 현황 ===== -->
+      <section id="page-kpi" class="page">
+        <div class="toolbar">
+          <label>최근</label>
+          <select id="kpi-days" onchange="loadKpi()">
+            <option value="7">7일</option>
+            <option value="14" selected>14일</option>
+            <option value="30">30일</option>
+          </select>
+          <span class="spacer"></span>
+          <div class="kpi-stat-inline" id="kpi-summary-inline"></div>
+        </div>
+        <div class="chart-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>목표 vs 실적 추이</h3></div>
+            <canvas id="chart-achievement" height="200"></canvas>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>투입인원 추이</h3></div>
+            <canvas id="chart-workers" height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 문서함 ===== -->
+      <section id="page-documents" class="page">
+        <div class="doc-layout">
+          <div class="doc-sidebar">
+            <div class="doc-sidebar-header">
+              <span>문서함</span>
+              <button class="btn-primary" onclick="newDocument()">+ 새 문서</button>
+            </div>
+            <div class="doc-category-filter">
+              <button class="doc-cat-btn active" onclick="filterDocs('', this)">전체</button>
+              <button class="doc-cat-btn" onclick="filterDocs('일일보고', this)">일일보고</button>
+              <button class="doc-cat-btn" onclick="filterDocs('주간보고', this)">주간보고</button>
+              <button class="doc-cat-btn" onclick="filterDocs('공지', this)">공지</button>
+              <button class="doc-cat-btn" onclick="filterDocs('일반', this)">일반</button>
+            </div>
+            <input id="doc-search" placeholder="문서 검색..." oninput="loadDocuments(this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;margin-top:8px"/>
+            <div id="doc-list" class="doc-list"></div>
+          </div>
+          <div class="doc-editor-area">
+            <div id="doc-placeholder" class="doc-placeholder">
+              <div>📝</div>
+              <p>왼쪽에서 문서를 선택하거나<br/>새 문서를 만드세요.</p>
+            </div>
+            <div id="doc-editor-wrap" style="display:none">
+              <div class="doc-editor-toolbar">
+                <input id="doc-title-input" class="doc-title-input" placeholder="제목 없음" oninput="markDocDirty()"/>
+                <div class="doc-meta-row">
+                  <select id="doc-category-select" onchange="markDocDirty()">
+                    <option>일반</option><option>일일보고</option><option>주간보고</option><option>공지</option>
+                  </select>
+                  <span id="doc-saved-at" class="doc-saved-at"></span>
+                  <button class="btn-primary" id="doc-save-btn" onclick="saveDocument()">저장</button>
+                  <button class="btn-danger" onclick="deleteDocument()">삭제</button>
+                </div>
+                <div class="editor-btn-row">
+                  <button onclick="execFmt('bold')" title="굵게"><b>B</b></button>
+                  <button onclick="execFmt('italic')" title="기울임"><i>I</i></button>
+                  <button onclick="execFmt('underline')" title="밑줄"><u>U</u></button>
+                  <span class="sep">|</span>
+                  <button onclick="execFmtBlock('h2')">H2</button>
+                  <button onclick="execFmtBlock('h3')">H3</button>
+                  <button onclick="execFmt('insertUnorderedList')">• 목록</button>
+                  <button onclick="execFmt('insertOrderedList')">1. 목록</button>
+                  <span class="sep">|</span>
+                  <button onclick="insertTable()">표 삽입</button>
+                  <button onclick="insertDivider()">구분선</button>
+                  <button onclick="insertDate()">날짜 삽입</button>
+                </div>
+              </div>
+              <div id="doc-body" class="doc-body" contenteditable="true" oninput="markDocDirty()"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 팀 피드 ===== -->
+      <section id="page-feed" class="page">
+        <div class="feed-layout">
+          <div class="feed-main">
+            <div class="toolbar">
+              <select id="feed-cat-filter" onchange="loadFeed()">
+                <option value="">전체</option>
+                <option>공지</option><option>업무공유</option><option>일일보고</option><option>기타</option>
+              </select>
+              <button class="btn-primary" onclick="newPost()">+ 글쓰기</button>
+            </div>
+            <div id="feed-compose" class="feed-compose" style="display:none">
+              <input id="post-title" placeholder="제목" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:0.9rem"/>
+              <select id="post-category" style="margin-bottom:8px;padding:8px;border:1px solid var(--border);border-radius:8px">
+                <option>공지</option><option>업무공유</option><option>일일보고</option><option>기타</option>
+              </select>
+              <div id="post-body" class="feed-editor" contenteditable="true" data-placeholder="내용을 입력하세요..."></div>
+              <div class="feed-compose-footer">
+                <button class="btn-secondary" onclick="cancelPost()">취소</button>
+                <button class="btn-primary" onclick="submitPost()">게시</button>
+              </div>
+            </div>
+            <div id="feed-list"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="page-settings" class="page">
         <div class="toolbar">
           <button class="btn-primary" onclick="addUser()">+ 사용자 추가</button>
@@ -196,6 +329,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/logistics.js"></script>
 </body>
 </html>

@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 
 import models
 from database import Base, SessionLocal, engine, get_db
-from models import (Contract, Customer, Deal, EmailLog, Insight, Issue, Lead, Meeting, Project,
-                     Schedule, Site, Task, User)
-from routers import (contracts, customers, emails, insights, issues, leads, meetings, pipeline,
-                      projects, schedules, sites, tasks)
+from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, FeedPost, Insight,
+                     Issue, Lead, Meeting, Project, Schedule, Site, Task, User, WorkLog)
+from routers import (contracts, customers, documents, emails, feed, insights, issues, leads,
+                      meetings, pipeline, projects, schedules, sites, tasks, worklogs)
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,7 +23,7 @@ STAGES = ["발굴", "접촉", "제안", "협상", "수주", "탈락"]
 
 for r in (leads.router, customers.router, pipeline.router, projects.router, contracts.router,
           sites.router, issues.router, meetings.router, emails.router, tasks.router,
-          schedules.router, insights.router):
+          schedules.router, insights.router, worklogs.router, documents.router, feed.router):
     app.include_router(r)
 
 
@@ -102,6 +102,45 @@ def search(q: str = "", db: Session = Depends(get_db)):
     for i in db.query(Issue).filter(Issue.title.ilike(like)).limit(5):
         results.append({"type": "이슈", "title": i.title, "sub": i.status})
     return results
+
+
+@app.get("/api/v1/kpi")
+def kpi_summary(days: int = 14, db: Session = Depends(get_db)):
+    from datetime import date, timedelta
+    rows = (
+        db.query(WorkLog)
+        .filter(WorkLog.date >= str(date.today() - timedelta(days=days)))
+        .order_by(WorkLog.date.asc())
+        .all()
+    )
+    total_target = sum(r.target_qty or 0 for r in rows)
+    total_actual = sum(r.actual_qty or 0 for r in rows)
+    total_workers = sum(r.worker_count or 0 for r in rows)
+    achievement = round(total_actual / total_target * 100, 1) if total_target else 0
+
+    # 작업시간당 처리량
+    total_hours = sum((r.work_hours or 8) * (r.worker_count or 1) for r in rows)
+    productivity = round(total_actual / total_hours, 1) if total_hours else 0
+
+    # 날짜별 집계
+    from collections import defaultdict
+    by_date: dict = defaultdict(lambda: {"target": 0, "actual": 0, "workers": 0})
+    for r in rows:
+        d = r.date or ""
+        by_date[d]["target"] += r.target_qty or 0
+        by_date[d]["actual"] += r.actual_qty or 0
+        by_date[d]["workers"] += r.worker_count or 0
+
+    trend = [{"date": d, **v} for d, v in sorted(by_date.items())]
+
+    return {
+        "total_target": total_target,
+        "total_actual": total_actual,
+        "total_workers": total_workers,
+        "achievement": achievement,
+        "productivity": productivity,
+        "trend": trend,
+    }
 
 
 @app.get("/api/v1/weekly-report")

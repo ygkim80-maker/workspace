@@ -140,3 +140,46 @@ class User(Base):
     name = Column(String)
     email = Column(String)
     role = Column(String, default="member")
+
+
+class WorkLog(Base):
+    __tablename__ = "worklogs"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    work_type = Column(String)
+    target_qty = Column(Integer, default=0)
+    actual_qty = Column(Integer, default=0)
+    worker_count = Column(Integer, default=0)
+    work_hours = Column(Float, default=8.0)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    content = Column(Text)
+    category = Column(String, default="일반")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class FeedPost(Base):
+    __tablename__ = "feed_posts"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    content = Column(Text)
+    author = Column(String, default="관리자")
+    category = Column(String, default="공지")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FeedComment(Base):
+    __tablename__ = "feed_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("feed_posts.id"), index=True)
+    content = Column(Text)
+    author = Column(String, default="관리자")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

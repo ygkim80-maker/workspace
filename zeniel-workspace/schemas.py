@@ -279,3 +279,61 @@ class UserCreate(UserBase):
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class WorkLogBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    work_type: Optional[str] = None
+    target_qty: Optional[int] = 0
+    actual_qty: Optional[int] = 0
+    worker_count: Optional[int] = 0
+    work_hours: Optional[float] = 8.0
+    notes: Optional[str] = None
+
+class WorkLogCreate(WorkLogBase): pass
+class WorkLogUpdate(WorkLogBase): pass
+class WorkLogOut(WorkLogBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class DocumentBase(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = "일반"
+
+class DocumentCreate(DocumentBase): pass
+class DocumentUpdate(DocumentBase): pass
+class DocumentOut(DocumentBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class FeedPostBase(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    author: Optional[str] = "관리자"
+    category: Optional[str] = "공지"
+
+class FeedPostCreate(FeedPostBase): pass
+class FeedPostUpdate(FeedPostBase): pass
+class FeedPostOut(FeedPostBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class FeedCommentBase(BaseModel):
+    post_id: Optional[int] = None
+    content: Optional[str] = None
+    author: Optional[str] = "관리자"
+
+class FeedCommentCreate(FeedCommentBase): pass
+class FeedCommentOut(FeedCommentBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
