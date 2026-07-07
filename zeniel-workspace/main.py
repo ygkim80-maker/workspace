@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 import models
 from database import Base, SessionLocal, engine, get_db
 from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, FeedPost, Insight,
-                     Issue, Lead, Meeting, Project, Schedule, Site, Task, User, WorkLog)
+                     Issue, Lead, Meeting, Project, Schedule, Site, Task, User, WeeklyReport,
+                     WeeklyReportItem, WorkLog)
 from routers import (contracts, customers, documents, emails, feed, insights, issues, leads,
-                      meetings, pipeline, projects, schedules, sites, tasks, worklogs)
+                      meetings, pipeline, projects, schedules, sites, tasks, weekly_reports,
+                      worklogs)
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,7 +25,8 @@ STAGES = ["발굴", "접촉", "제안", "협상", "수주", "탈락"]
 
 for r in (leads.router, customers.router, pipeline.router, projects.router, contracts.router,
           sites.router, issues.router, meetings.router, emails.router, tasks.router,
-          schedules.router, insights.router, worklogs.router, documents.router, feed.router):
+          schedules.router, insights.router, worklogs.router, documents.router, feed.router,
+          weekly_reports.router):
     app.include_router(r)
 
 

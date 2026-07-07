@@ -31,6 +31,7 @@
       <div class="nav-section-label">협업</div>
       <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 문서함</div>
       <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 팀 피드</div>
+      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
     </nav>
   </aside>
 
@@ -318,6 +319,55 @@
         </div>
       </section>
 
+      <!-- ===== 주간보고 ===== -->
+      <section id="page-weekly-report" class="page">
+        <div class="wr-layout">
+          <!-- 좌: 보고서 목록 -->
+          <div class="wr-sidebar">
+            <div class="wr-sidebar-header">
+              <span>주간보고 목록</span>
+              <button class="btn-primary" onclick="newWeeklyReport()">+ 새 보고서</button>
+            </div>
+            <div id="wr-list" class="wr-list"></div>
+          </div>
+          <!-- 우: 편집 영역 -->
+          <div class="wr-editor-area">
+            <div id="wr-placeholder" class="doc-placeholder">
+              <div>📋</div>
+              <p>왼쪽에서 보고서를 선택하거나<br/>새 보고서를 만드세요.</p>
+            </div>
+            <div id="wr-editor-wrap" style="display:none">
+              <div class="wr-editor-top">
+                <div class="wr-meta-row">
+                  <input id="wr-title-input" class="doc-title-input" placeholder="보고서 제목 (예: 전략사업팀 주간보고)"/>
+                  <input id="wr-team-input" style="width:160px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem" placeholder="팀명"/>
+                  <input id="wr-week-input" type="week" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem"/>
+                  <button class="btn-primary" onclick="saveWeeklyReport()">저장</button>
+                  <button class="btn-secondary" onclick="exportWrImage()">이미지 저장</button>
+                  <button class="btn-danger" onclick="deleteWeeklyReport()">삭제</button>
+                </div>
+                <div class="wr-actions-row">
+                  <button class="btn-secondary btn-sm" onclick="addWrCategory()">+ 카테고리 추가</button>
+                </div>
+              </div>
+              <!-- 보고서 미리보기/편집 테이블 -->
+              <div id="wr-table-wrap" class="wr-table-wrap">
+                <table class="wr-table" id="wr-preview-table">
+                  <thead>
+                    <tr>
+                      <th class="wr-th-cat">구분</th>
+                      <th>실시사항</th>
+                      <th>예정 사항</th>
+                    </tr>
+                  </thead>
+                  <tbody id="wr-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="page-settings" class="page">
         <div class="toolbar">
           <button class="btn-primary" onclick="addUser()">+ 사용자 추가</button>
@@ -330,7 +380,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/logistics.js"></script>
+<script src="/static/weekly_report.js"></script>
 </body>
 </html>

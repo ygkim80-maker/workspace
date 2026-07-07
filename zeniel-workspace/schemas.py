@@ -337,3 +337,34 @@ class FeedCommentOut(FeedCommentBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: Optional[datetime] = None
+
+
+from typing import List
+
+class WeeklyReportItemBase(BaseModel):
+    category: Optional[str] = None
+    sort_order: Optional[int] = 0
+    done_items: Optional[str] = "[]"   # JSON string
+    plan_items: Optional[str] = "[]"
+
+class WeeklyReportItemCreate(WeeklyReportItemBase): pass
+class WeeklyReportItemUpdate(WeeklyReportItemBase): pass
+class WeeklyReportItemOut(WeeklyReportItemBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    report_id: Optional[int] = None
+
+
+class WeeklyReportBase(BaseModel):
+    week_label: Optional[str] = None
+    title: Optional[str] = None
+    team: Optional[str] = "전략사업팀"
+
+class WeeklyReportCreate(WeeklyReportBase): pass
+class WeeklyReportUpdate(WeeklyReportBase): pass
+class WeeklyReportOut(WeeklyReportBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    items: Optional[List[WeeklyReportItemOut]] = []

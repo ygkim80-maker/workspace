@@ -183,3 +183,23 @@ class FeedComment(Base):
     content = Column(Text)
     author = Column(String, default="관리자")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WeeklyReport(Base):
+    __tablename__ = "weekly_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    week_label = Column(String, index=True)   # e.g. "2026-W27"
+    title = Column(String)                     # e.g. "전략사업팀 주간보고"
+    team = Column(String, default="전략사업팀")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class WeeklyReportItem(Base):
+    __tablename__ = "weekly_report_items"
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("weekly_reports.id"), index=True)
+    category = Column(String)        # e.g. "3PL", "디버", "크립톤"
+    sort_order = Column(Integer, default=0)
+    done_items = Column(Text)        # JSON array of strings
+    plan_items = Column(Text)        # JSON array of strings
