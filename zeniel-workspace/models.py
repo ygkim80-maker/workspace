@@ -231,3 +231,28 @@ class TBM(Base):
     attendee_count = Column(Integer, default=0)
     status = Column(String, default="완료")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyEdu(Base):
+    __tablename__ = "safety_edu"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    title = Column(String)
+    instructor = Column(String)
+    participant_count = Column(Integer, default=0)
+    completed = Column(Integer, default=0)  # 0=False, 1=True
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Staffing(Base):
+    __tablename__ = "staffing"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    regular = Column(Integer, default=0)
+    contract = Column(Integer, default=0)
+    dispatch = Column(Integer, default=0)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

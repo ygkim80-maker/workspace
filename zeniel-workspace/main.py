@@ -13,7 +13,7 @@ from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, F
                      TBM, Task, User, WeeklyReport, WeeklyReportItem, WorkLog)
 from routers import (contracts, customers, documents, emails, feed, hourly, insights, issues,
                       leads, meetings, pipeline, projects, schedules, sites, tasks, tbm,
-                      weekly_reports, worklogs)
+                      weekly_reports, worklogs, safety_edu, staffing)
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,7 +26,8 @@ STAGES = ["발굴", "접촉", "제안", "협상", "수주", "탈락"]
 for r in (leads.router, customers.router, pipeline.router, projects.router, contracts.router,
           sites.router, issues.router, meetings.router, emails.router, tasks.router,
           schedules.router, insights.router, worklogs.router, documents.router, feed.router,
-          weekly_reports.router, hourly.router, tbm.router):
+          weekly_reports.router, hourly.router, tbm.router,
+          safety_edu.router, staffing.router):
     app.include_router(r)
 
 

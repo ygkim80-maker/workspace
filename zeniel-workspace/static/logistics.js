@@ -14,6 +14,7 @@ function navigate(page) {
     insights: '메모·인사이트', settings: '설정',
     worklog: '일일 작업관리', kpi: 'KPI 현황', documents: '문서함', feed: '팀 피드',
     hourly: '시간대별 물량', tbm: 'TBM 기록',
+    'safety-edu': '안전교육 관리', staffing: '인원 배치',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -24,6 +25,7 @@ function navigate(page) {
     insights: loadInsights, settings: loadSettings,
     worklog: loadWorklog, kpi: loadKpi, documents: loadDocuments, feed: loadFeed,
     hourly: loadHourly, tbm: loadTBM,
+    'safety-edu': loadSafetyEdu, staffing: loadStaffing,
   };
   if (loaders[page]) loaders[page]();
 }
@@ -658,4 +660,185 @@ async function deleteTBM(id) {
   if (!confirm('TBM 기록을 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/tbm/${id}`);
   loadTBM();
+}
+
+// ===== 안전교육 관리 (Safety Education) =====
+async function loadSafetyEdu() {
+  const siteEl = document.getElementById('edu-site-filter');
+  const fromEl = document.getElementById('edu-date-from');
+  const toEl   = document.getElementById('edu-date-to');
+  let url = '/api/v1/safety_edu?';
+  if (siteEl?.value) url += `site=${encodeURIComponent(siteEl.value)}&`;
+  if (fromEl?.value) url += `date_from=${fromEl.value}&`;
+  if (toEl?.value)   url += `date_to=${toEl.value}&`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  // Populate site filter options
+  if (siteEl && siteEl.options.length <= 1) {
+    const sites = [...new Set(rows.map(r => r.site).filter(Boolean))];
+    sites.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; siteEl.appendChild(o); });
+  }
+
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const thisMonthRows = rows.filter(r => r.date?.startsWith(thisMonth));
+  const totalParticipants = rows.reduce((s, r) => s + (r.participant_count || 0), 0);
+  const completedRows = rows.filter(r => r.completed);
+  const rate = rows.length ? Math.round(completedRows.length / rows.length * 100) : 0;
+
+  document.getElementById('edu-count').textContent = rows.length;
+  document.getElementById('edu-participants').textContent = totalParticipants.toLocaleString();
+  document.getElementById('edu-this-month').textContent = thisMonthRows.length;
+  document.getElementById('edu-completion').textContent = rate + '%';
+
+  document.getElementById('edu-grid').innerHTML = rows.length ? rows.map(r => `
+    <div class="tbm-card">
+      <div class="tbm-card-header">
+        <span class="badge-safety">${r.site || '-'}</span>
+        <span style="font-size:.75rem;color:var(--muted)">${r.date || ''}</span>
+      </div>
+      <div class="tbm-card-title">${r.title || '안전교육'}</div>
+      <div style="margin:.5rem 0;font-size:.82rem;color:var(--muted)">${r.instructor ? '강사: ' + r.instructor : ''}</div>
+      <div class="tbm-card-footer">
+        <span>참석 ${r.participant_count || 0}명</span>
+        <span class="${r.completed ? 'badge-safety' : 'badge-warning'}">${r.completed ? '완료' : '진행중'}</span>
+        <button class="btn-icon" onclick="editSafetyEdu(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteSafetyEdu(${r.id})">삭제</button>
+      </div>
+    </div>`).join('') : '<p style="color:var(--muted);padding:20px">등록된 교육 기록이 없습니다.</p>';
+}
+
+function safetyEduForm(r = {}) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>교육일</label><input name="date" type="date" value="${r.date || new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value="${r.site || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>교육 제목</label><input name="title" value="${r.title || ''}"></div>
+      <div class="form-group"><label>강사</label><input name="instructor" value="${r.instructor || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>참석인원</label><input name="participant_count" type="number" value="${r.participant_count || 0}"></div>
+      <div class="form-group"><label>완료 여부</label>
+        <select name="completed">
+          <option value="false" ${!r.completed ? 'selected':''}>진행중</option>
+          <option value="true" ${r.completed ? 'selected':''}>완료</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>내용 / 비고</label><textarea name="notes" rows="3">${r.notes || ''}</textarea></div>`;
+}
+
+function addSafetyEdu() {
+  openModal('안전교육 등록', safetyEduForm(), async (fd) => {
+    const d = { date: fd.get('date'), site: fd.get('site'), title: fd.get('title'),
+      instructor: fd.get('instructor'), participant_count: parseInt(fd.get('participant_count')) || 0,
+      completed: fd.get('completed') === 'true', notes: fd.get('notes') };
+    await api.post('/api/v1/safety_edu', d);
+    loadSafetyEdu();
+  });
+}
+
+async function editSafetyEdu(id) {
+  const r = await api.get(`/api/v1/safety_edu/${id}`);
+  openModal('안전교육 수정', safetyEduForm(r), async (fd) => {
+    const d = { date: fd.get('date'), site: fd.get('site'), title: fd.get('title'),
+      instructor: fd.get('instructor'), participant_count: parseInt(fd.get('participant_count')) || 0,
+      completed: fd.get('completed') === 'true', notes: fd.get('notes') };
+    await api.put(`/api/v1/safety_edu/${id}`, d);
+    loadSafetyEdu();
+  });
+}
+
+async function deleteSafetyEdu(id) {
+  if (!confirm('교육 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_edu/${id}`);
+  loadSafetyEdu();
+}
+
+// ===== 인원 배치 (Staffing) =====
+async function loadStaffing() {
+  const dateEl = document.getElementById('staffing-date');
+  const siteEl = document.getElementById('staffing-site-filter');
+  let url = '/api/v1/staffing?';
+  if (dateEl?.value) url += `date=${dateEl.value}&`;
+  if (siteEl?.value) url += `site=${encodeURIComponent(siteEl.value)}&`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  if (siteEl && siteEl.options.length <= 1) {
+    const sites = [...new Set(rows.map(r => r.site).filter(Boolean))];
+    sites.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; siteEl.appendChild(o); });
+  }
+
+  const totalAll  = rows.reduce((s, r) => s + (r.regular||0) + (r.contract||0) + (r.dispatch||0), 0);
+  const totalReg  = rows.reduce((s, r) => s + (r.regular||0), 0);
+  const totalCon  = rows.reduce((s, r) => s + (r.contract||0) + (r.dispatch||0), 0);
+  const siteCount = new Set(rows.map(r => r.site).filter(Boolean)).size;
+
+  document.getElementById('staffing-total').textContent = totalAll.toLocaleString();
+  document.getElementById('staffing-regular').textContent = totalReg.toLocaleString();
+  document.getElementById('staffing-contract').textContent = totalCon.toLocaleString();
+  document.getElementById('staffing-sites').textContent = siteCount;
+
+  document.getElementById('staffing-tbody').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${r.site || '-'}</td>
+      <td>${r.date || '-'}</td>
+      <td>${r.regular || 0}</td>
+      <td>${r.contract || 0}</td>
+      <td>${r.dispatch || 0}</td>
+      <td><strong>${(r.regular||0)+(r.contract||0)+(r.dispatch||0)}</strong></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '-'}</td>
+      <td>
+        <button class="btn-icon" onclick="editStaffing(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteStaffing(${r.id})">삭제</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty-state">데이터 없음</td></tr>';
+}
+
+function staffingForm(r = {}) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${r.date || new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value="${r.site || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>정규직</label><input name="regular" type="number" value="${r.regular || 0}"></div>
+      <div class="form-group"><label>계약직</label><input name="contract" type="number" value="${r.contract || 0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>파견</label><input name="dispatch" type="number" value="${r.dispatch || 0}"></div>
+      <div class="form-group"><label>비고</label><input name="notes" value="${r.notes || ''}"></div>
+    </div>`;
+}
+
+function addStaffing() {
+  openModal('인원 배치 등록', staffingForm(), async (fd) => {
+    const d = { date: fd.get('date'), site: fd.get('site'),
+      regular: parseInt(fd.get('regular')) || 0, contract: parseInt(fd.get('contract')) || 0,
+      dispatch: parseInt(fd.get('dispatch')) || 0, notes: fd.get('notes') };
+    await api.post('/api/v1/staffing', d);
+    loadStaffing();
+  });
+}
+
+async function editStaffing(id) {
+  const r = await api.get(`/api/v1/staffing/${id}`);
+  openModal('인원 배치 수정', staffingForm(r), async (fd) => {
+    const d = { date: fd.get('date'), site: fd.get('site'),
+      regular: parseInt(fd.get('regular')) || 0, contract: parseInt(fd.get('contract')) || 0,
+      dispatch: parseInt(fd.get('dispatch')) || 0, notes: fd.get('notes') };
+    await api.put(`/api/v1/staffing/${id}`, d);
+    loadStaffing();
+  });
+}
+
+async function deleteStaffing(id) {
+  if (!confirm('배치 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/staffing/${id}`);
+  loadStaffing();
 }

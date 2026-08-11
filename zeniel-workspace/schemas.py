@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class LeadBase(BaseModel):
@@ -404,3 +404,43 @@ class WeeklyReportOut(WeeklyReportBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     items: Optional[List[WeeklyReportItemOut]] = []
+
+
+class SafetyEduBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    title: Optional[str] = None
+    instructor: Optional[str] = None
+    participant_count: Optional[int] = 0
+    completed: Optional[bool] = False
+    notes: Optional[str] = None
+
+class SafetyEduCreate(SafetyEduBase): pass
+class SafetyEduUpdate(SafetyEduBase): pass
+class SafetyEduOut(SafetyEduBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+    @field_validator('completed', mode='before')
+    @classmethod
+    def coerce_bool(cls, v):
+        if isinstance(v, int):
+            return bool(v)
+        return v
+
+
+class StaffingBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    regular: Optional[int] = 0
+    contract: Optional[int] = 0
+    dispatch: Optional[int] = 0
+    notes: Optional[str] = None
+
+class StaffingCreate(StaffingBase): pass
+class StaffingUpdate(StaffingBase): pass
+class StaffingOut(StaffingBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None

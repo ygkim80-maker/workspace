@@ -11,29 +11,39 @@
   <aside class="sidebar">
     <div class="brand">ZENIEL<span>WORKSPACE</span></div>
     <nav class="nav">
-      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📊 대시보드</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📡 실시간 현황</div>
+
+      <div class="nav-section-label">물량 관리</div>
+      <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 작업 일지</div>
+      <div class="nav-item" data-page="hourly" onclick="navigate('hourly')">⏱ 시간대별 물량</div>
+      <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 생산성 KPI</div>
+
+      <div class="nav-section-label">안전 관리</div>
+      <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
+      <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈·특이사항</div>
+      <div class="nav-item" data-page="safety-edu" onclick="navigate('safety-edu')">🎓 안전교육 관리</div>
+
+      <div class="nav-section-label">인원 운영</div>
+      <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장 현황</div>
+      <div class="nav-item" data-page="staffing" onclick="navigate('staffing')">👥 인원 배치</div>
+
+      <div class="nav-section-label">소통·문서</div>
+      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 현장 소통</div>
+      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
+      <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 매뉴얼·SOP</div>
+      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
+      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
+
+      <div class="nav-section-label">본사 CRM</div>
       <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
       <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
       <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline')">🔀 파이프라인</div>
-      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트 현황</div>
+      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트</div>
       <div class="nav-item" data-page="contracts" onclick="navigate('contracts')">📄 계약관리</div>
-      <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장관리</div>
-      <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈관리</div>
       <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">🤝 미팅관리</div>
       <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
-      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
-      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
-      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 메모·인사이트</div>
+      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 인사이트</div>
       <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
-      <div class="nav-section-label">물류현장</div>
-      <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 일일 작업관리</div>
-      <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 KPI 현황</div>
-      <div class="nav-item" data-page="hourly" onclick="navigate('hourly')">⏱ 시간대별 물량</div>
-      <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
-      <div class="nav-section-label">협업</div>
-      <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 문서함</div>
-      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 팀 피드</div>
-      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
     </nav>
   </aside>
 
@@ -49,20 +59,44 @@
     <main class="content">
 
       <section id="page-dashboard" class="page active">
+        <!-- 현장 실시간 현황 대시보드 -->
         <div class="kpi-row">
-          <div class="kpi-card"><span class="kpi-label">리드</span><span class="kpi-value" id="kpi-leads">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">진행 프로젝트</span><span class="kpi-value" id="kpi-projects">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">미완료 할일</span><span class="kpi-value" id="kpi-tasks">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">누적 매출</span><span class="kpi-value" id="kpi-revenue">0</span></div>
+          <div class="kpi-card">
+            <span class="kpi-label">오늘 총 물량</span>
+            <span class="kpi-value" id="dash-actual">-</span>
+            <span style="font-size:.75rem;color:var(--muted)">목표 <span id="dash-target">-</span></span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">달성률</span>
+            <span class="kpi-value" id="dash-rate" style="color:var(--amber)">-</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">오늘 투입인원</span>
+            <span class="kpi-value" id="dash-workers">-</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">미처리 이슈</span>
+            <span class="kpi-value" id="dash-issues" style="color:var(--danger)">-</span>
+          </div>
         </div>
         <div class="dash-grid">
           <div class="panel">
-            <div class="panel-header"><h3>파이프라인 요약</h3></div>
-            <div id="pipeline-summary"></div>
+            <div class="panel-header"><h3>현장별 오늘 현황</h3></div>
+            <div id="dash-sites-table"></div>
           </div>
           <div class="panel">
-            <div class="panel-header"><h3>최근 활동</h3><button class="btn-secondary" onclick="showWeeklyReport()">주간보고</button></div>
-            <div id="timeline" class="timeline"></div>
+            <div class="panel-header"><h3>미처리 이슈·특이사항</h3><button class="btn-primary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('issues')">전체보기</button></div>
+            <div id="dash-issues-list" class="timeline"></div>
+          </div>
+        </div>
+        <div class="dash-grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-header"><h3>오늘 TBM 현황</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('tbm')">전체보기</button></div>
+            <div id="dash-tbm-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>현장 소통 최신 공지</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('feed')">전체보기</button></div>
+            <div id="dash-feed-list" class="timeline"></div>
           </div>
         </div>
       </section>
@@ -333,6 +367,50 @@
               <div id="doc-body" class="doc-body" contenteditable="true" oninput="markDocDirty()"></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- ===== 안전교육 관리 ===== -->
+      <section id="page-safety-edu" class="page">
+        <div class="toolbar">
+          <select id="edu-site-filter" onchange="loadSafetyEdu()">
+            <option value="">전체 현장</option>
+          </select>
+          <input id="edu-date-from" type="date" onchange="loadSafetyEdu()"/>
+          <input id="edu-date-to" type="date" onchange="loadSafetyEdu()" style="width:auto"/>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSafetyEdu()">+ 교육 등록</button>
+        </div>
+        <div class="kpi-row" id="edu-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 교육 횟수</span><span class="kpi-value" id="edu-count">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">총 이수인원</span><span class="kpi-value" id="edu-participants">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">이번달 교육</span><span class="kpi-value" id="edu-this-month">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">완료율</span><span class="kpi-value" id="edu-completion">-</span></div>
+        </div>
+        <div id="edu-grid" class="tbm-grid"></div>
+      </section>
+
+      <!-- ===== 인원 배치 ===== -->
+      <section id="page-staffing" class="page">
+        <div class="toolbar">
+          <input id="staffing-date" type="date" onchange="loadStaffing()"/>
+          <select id="staffing-site-filter" onchange="loadStaffing()">
+            <option value="">전체 현장</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addStaffing()">+ 배치 등록</button>
+        </div>
+        <div class="kpi-row" id="staffing-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 배치인원</span><span class="kpi-value" id="staffing-total">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">정규직</span><span class="kpi-value" id="staffing-regular">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">계약직/파견</span><span class="kpi-value" id="staffing-contract">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">현장 수</span><span class="kpi-value" id="staffing-sites">-</span></div>
+        </div>
+        <div id="staffing-table-wrap" class="panel" style="margin-top:16px">
+          <table class="data-table" id="staffing-table">
+            <thead><tr><th>현장</th><th>날짜</th><th>정규직</th><th>계약직</th><th>파견</th><th>합계</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="staffing-tbody"><tr><td colspan="8" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
         </div>
       </section>
 
