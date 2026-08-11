@@ -777,10 +777,10 @@ function safetyEduForm(r = {}) {
 }
 
 function addSafetyEdu() {
-  openModal('안전교육 등록', safetyEduForm(), async (fd) => {
-    const d = { date: fd.get('date'), site: fd.get('site'), title: fd.get('title'),
-      instructor: fd.get('instructor'), participant_count: parseInt(fd.get('participant_count')) || 0,
-      completed: fd.get('completed') === 'true', notes: fd.get('notes') };
+  showModal('안전교육 등록', safetyEduForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'title', 'instructor', 'participant_count', 'completed', 'notes']);
+    d.participant_count = parseInt(d.participant_count) || 0;
+    d.completed = d.completed === 'true';
     await api.post('/api/v1/safety_edu', d);
     loadSafetyEdu();
   });
@@ -788,10 +788,10 @@ function addSafetyEdu() {
 
 async function editSafetyEdu(id) {
   const r = await api.get(`/api/v1/safety_edu/${id}`);
-  openModal('안전교육 수정', safetyEduForm(r), async (fd) => {
-    const d = { date: fd.get('date'), site: fd.get('site'), title: fd.get('title'),
-      instructor: fd.get('instructor'), participant_count: parseInt(fd.get('participant_count')) || 0,
-      completed: fd.get('completed') === 'true', notes: fd.get('notes') };
+  showModal('안전교육 수정', safetyEduForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'title', 'instructor', 'participant_count', 'completed', 'notes']);
+    d.participant_count = parseInt(d.participant_count) || 0;
+    d.completed = d.completed === 'true';
     await api.put(`/api/v1/safety_edu/${id}`, d);
     loadSafetyEdu();
   });
@@ -862,10 +862,11 @@ function staffingForm(r = {}) {
 }
 
 function addStaffing() {
-  openModal('인원 배치 등록', staffingForm(), async (fd) => {
-    const d = { date: fd.get('date'), site: fd.get('site'),
-      regular: parseInt(fd.get('regular')) || 0, contract: parseInt(fd.get('contract')) || 0,
-      dispatch: parseInt(fd.get('dispatch')) || 0, notes: fd.get('notes') };
+  showModal('인원 배치 등록', staffingForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'regular', 'contract', 'dispatch', 'notes']);
+    d.regular = parseInt(d.regular) || 0;
+    d.contract = parseInt(d.contract) || 0;
+    d.dispatch = parseInt(d.dispatch) || 0;
     await api.post('/api/v1/staffing', d);
     loadStaffing();
   });
@@ -873,10 +874,11 @@ function addStaffing() {
 
 async function editStaffing(id) {
   const r = await api.get(`/api/v1/staffing/${id}`);
-  openModal('인원 배치 수정', staffingForm(r), async (fd) => {
-    const d = { date: fd.get('date'), site: fd.get('site'),
-      regular: parseInt(fd.get('regular')) || 0, contract: parseInt(fd.get('contract')) || 0,
-      dispatch: parseInt(fd.get('dispatch')) || 0, notes: fd.get('notes') };
+  showModal('인원 배치 수정', staffingForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'regular', 'contract', 'dispatch', 'notes']);
+    d.regular = parseInt(d.regular) || 0;
+    d.contract = parseInt(d.contract) || 0;
+    d.dispatch = parseInt(d.dispatch) || 0;
     await api.put(`/api/v1/staffing/${id}`, d);
     loadStaffing();
   });
