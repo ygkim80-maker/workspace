@@ -8,16 +8,16 @@ from sqlalchemy.orm import Session
 
 import models
 from database import Base, SessionLocal, engine, get_db
-from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, FeedPost, Insight,
-                     Issue, Lead, Meeting, Project, Schedule, Site, Task, User, WeeklyReport,
-                     WeeklyReportItem, WorkLog)
-from routers import (contracts, customers, documents, emails, feed, insights, issues, leads,
-                      meetings, pipeline, projects, schedules, sites, tasks, weekly_reports,
-                      worklogs)
+from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, FeedPost,
+                     HourlyVolume, Insight, Issue, Lead, Meeting, Project, Schedule, Site,
+                     TBM, Task, User, WeeklyReport, WeeklyReportItem, WorkLog)
+from routers import (contracts, customers, documents, emails, feed, hourly, insights, issues,
+                      leads, meetings, pipeline, projects, schedules, sites, tasks, tbm,
+                      weekly_reports, worklogs)
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="ZENIEL WORKSPACE")
+app = FastAPI(title="물류 현장 — ZENIEL")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -26,7 +26,7 @@ STAGES = ["발굴", "접촉", "제안", "협상", "수주", "탈락"]
 for r in (leads.router, customers.router, pipeline.router, projects.router, contracts.router,
           sites.router, issues.router, meetings.router, emails.router, tasks.router,
           schedules.router, insights.router, worklogs.router, documents.router, feed.router,
-          weekly_reports.router):
+          weekly_reports.router, hourly.router, tbm.router):
     app.include_router(r)
 
 
@@ -185,79 +185,151 @@ def seed_data():
             return
 
         today = datetime.now().date()
+        td = lambda d: str(today - timedelta(days=d))
+        tf = lambda d: str(today + timedelta(days=d))
 
+        # ── 영업 CRM ──
         db.add_all([
-            Lead(company="대한물산", contact="김민수", phone="01012345678", email="kim@daehan.com", status="신규", source="홈페이지", memo="견적 문의"),
-            Lead(company="서울테크", contact="이지은", phone="01023456789", email="lee@seoultech.com", status="접촉중", source="지인소개", memo="2차 미팅 예정"),
-            Lead(company="한빛산업", contact="박준호", phone="01034567890", email="park@hanbit.com", status="미팅완료", source="전시회", memo=""),
-            Lead(company="그린에너지", contact="최유진", phone="01045678901", email="choi@green.com", status="제안", source="콜드콜", memo="제안서 발송 완료"),
+            Lead(company="쿠팡 풀필먼트", contact="박성훈", phone="01011112222", email="park@coupang.com", status="접촉중", source="지인소개", memo="MFC 운영 위탁 협의"),
+            Lead(company="CJ대한통운", contact="김지영", phone="01033334444", email="kim@cjlogistics.com", status="제안", source="전시회", memo="3PL 계약 확대 논의"),
+            Lead(company="롯데글로벌로지스", contact="이준호", phone="01055556666", email="lee@lotte.com", status="신규", source="홈페이지", memo="신규 터미널 운영 문의"),
+            Lead(company="한진택배", contact="최민지", phone="01077778888", email="choi@hanjin.com", status="미팅완료", source="콜드콜", memo="운영 개선 제안"),
+        ])
+        db.add_all([
+            Customer(company="쿠팡 풀필먼트", contact="박성훈", phone="01011112222", email="park@coupang.com", grade="A", memo="주력 고객사"),
+            Customer(company="CJ대한통운", contact="김지영", phone="01033334444", email="kim@cjlogistics.com", grade="A", memo="장기 파트너"),
+            Customer(company="롯데글로벌로지스", contact="이준호", phone="01055556666", email="lee@lotte.com", grade="B", memo=""),
+        ])
+        db.add_all([
+            Deal(company="쿠팡 풀필먼트", contact="박성훈", stage="협상", expected_revenue=480000000, segment="이커머스", last_contact=td(1), next_action="계약서 검토"),
+            Deal(company="CJ대한통운", contact="김지영", stage="제안", expected_revenue=360000000, segment="택배", last_contact=td(3), next_action="단가 협의"),
+            Deal(company="롯데글로벌로지스", contact="이준호", stage="접촉", expected_revenue=120000000, segment="물류", last_contact=td(5), next_action="현장 방문"),
+            Deal(company="한진택배", contact="최민지", stage="발굴", expected_revenue=80000000, segment="택배", last_contact=td(7), next_action="제안서 발송"),
         ])
 
+        # ── 프로젝트 ──
         db.add_all([
-            Customer(company="대한물산", contact="김민수", phone="01012345678", email="kim@daehan.com", grade="A", memo="VIP 고객"),
-            Customer(company="미래건설", contact="정수민", phone="01056789012", email="jung@mirae.com", grade="B", memo=""),
-            Customer(company="한빛산업", contact="박준호", phone="01034567890", email="park@hanbit.com", grade="C", memo="신규 거래"),
-        ])
-
-        db.add_all([
-            Deal(company="서울테크", contact="이지은", stage="접촉", expected_revenue=50000000, segment="IT", last_contact=str(today), next_action="견적서 발송"),
-            Deal(company="그린에너지", contact="최유진", stage="제안", expected_revenue=120000000, segment="에너지", last_contact=str(today), next_action="협상 일정 조율"),
-            Deal(company="한빛산업", contact="박준호", stage="발굴", expected_revenue=30000000, segment="제조", last_contact=str(today), next_action="초기 미팅"),
-            Deal(company="미래건설", contact="정수민", stage="수주", expected_revenue=200000000, segment="건설", last_contact=str(today), next_action="계약 체결"),
-        ])
-
-        db.add_all([
-            Project(name="대한물산 ERP 구축", type="구축", status="진행중", assignee="김민수", revenue=150000000, start_date=str(today - timedelta(days=30)), end_date=str(today + timedelta(days=60)), memo=""),
-            Project(name="미래건설 현장관리 시스템", type="구축", status="완료", assignee="정수민", revenue=200000000, start_date=str(today - timedelta(days=120)), end_date=str(today - timedelta(days=10)), memo=""),
-            Project(name="한빛산업 유지보수", type="유지보수", status="진행중", assignee="박준호", revenue=20000000, start_date=str(today - timedelta(days=10)), end_date=str(today + timedelta(days=355)), memo=""),
+            Project(name="부산 물류센터 운영", type="운영", status="진행중", assignee="박준호", revenue=480000000, start_date=td(90), end_date=tf(275), memo="쿠팡 위탁"),
+            Project(name="인천 터미널 분류 운영", type="운영", status="진행중", assignee="이민철", revenue=360000000, start_date=td(60), end_date=tf(305), memo="CJ 위탁"),
+            Project(name="서울 MFC 구축", type="구축", status="진행중", assignee="김영기", revenue=150000000, start_date=td(30), end_date=tf(60), memo="롯데 발주"),
+            Project(name="대구 센터 유지보수", type="유지보수", status="완료", assignee="최유진", revenue=24000000, start_date=td(120), end_date=td(10), memo=""),
         ])
         db.commit()
 
         projects = db.query(Project).all()
         db.add_all([
-            Contract(project_id=projects[0].id, signed_date=str(today - timedelta(days=30)), renewal_date=str(today + timedelta(days=335)), amount=150000000, memo="ERP 구축 계약"),
-            Contract(project_id=projects[1].id, signed_date=str(today - timedelta(days=120)), renewal_date=None, amount=200000000, memo="현장관리 시스템 계약"),
+            Contract(project_id=projects[0].id, signed_date=td(90), renewal_date=tf(275), amount=480000000, memo="쿠팡 위탁 운영 계약"),
+            Contract(project_id=projects[1].id, signed_date=td(60), renewal_date=tf(305), amount=360000000, memo="CJ 터미널 운영"),
         ])
 
+        # ── 현장 ──
         db.add_all([
-            Site(name="서울 본사 현장", headcount=45, status="운영중", assignee="박준호", memo=""),
-            Site(name="부산 물류센터", headcount=20, status="일부중단", assignee="최유진", memo="설비 점검 중"),
+            Site(name="부산 물류센터", headcount=87, status="운영중", assignee="박준호", memo="쿠팡 위탁 · 3개 조 운영"),
+            Site(name="인천 터미널", headcount=54, status="운영중", assignee="이민철", memo="CJ 위탁 · 주간/야간"),
+            Site(name="서울 MFC", headcount=32, status="구축중", assignee="김영기", memo="오픈 예정"),
+            Site(name="대구 물류센터", headcount=28, status="일부중단", assignee="최유진", memo="설비 점검 중"),
         ])
 
+        # ── 이슈 ──
         db.add_all([
-            Issue(title="ERP 연동 오류", severity="상", status="처리중", assignee="김민수", due_date=str(today + timedelta(days=3)), memo="API 응답 지연"),
-            Issue(title="현장 출입 카드 재발급", severity="하", status="미처리", assignee="최유진", due_date=str(today + timedelta(days=7)), memo=""),
+            Issue(title="컨베이어 2호 라인 점검 필요", severity="상", status="처리중", assignee="박준호", due_date=tf(2), memo="소음 발생, 정비팀 출동 요청"),
+            Issue(title="TBM 미서명자 3명 확인", severity="상", status="미처리", assignee="이민철", due_date=tf(1), memo="금일 내 서명 완료 요청"),
+            Issue(title="야간 조 인원 부족 (2명)", severity="중", status="처리중", assignee="박준호", due_date=tf(3), memo="파견사 긴급 요청"),
+            Issue(title="스캐너 3번 오류", severity="하", status="처리완료", assignee="최유진", due_date=td(1), memo="재부팅으로 해결"),
         ])
 
+        # ── 미팅 ──
         db.add_all([
-            Meeting(title="ERP 구축 킥오프", counterpart="대한물산", date=str(today - timedelta(days=25)), agenda="요구사항 정의", result="범위 확정", followup="설계 문서 공유"),
-            Meeting(title="그린에너지 제안 미팅", counterpart="그린에너지", date=str(today - timedelta(days=2)), agenda="제안 내용 설명", result="긍정적 반응", followup="견적서 수정 후 재발송"),
+            Meeting(title="쿠팡 월간 운영 회의", counterpart="쿠팡 풀필먼트", date=td(3), agenda="물량 목표 및 인원 협의", result="8월 목표 12,000건/일 합의", followup="SLA 보고서 제출"),
+            Meeting(title="CJ 운영 점검", counterpart="CJ대한통운", date=td(7), agenda="3분기 성과 점검", result="달성률 94% 확인", followup="4분기 인원 계획 제출"),
         ])
 
+        # ── 할일 ──
         db.add_all([
-            EmailLog(to_company="서울테크", subject="견적서 발송의 건", sent_at=str(today - timedelta(days=1)), status="회신대기", memo=""),
-            EmailLog(to_company="그린에너지", subject="제안서 수정본 발송", sent_at=str(today), status="발송완료", memo=""),
+            Task(title="8월 TBM 일지 취합·보고", due_date=tf(1), priority="상", assignee="박준호", done=False),
+            Task(title="인천 터미널 안전점검 보고서", due_date=tf(3), priority="상", assignee="이민철", done=False),
+            Task(title="파견 인원 계획서 제출", due_date=tf(5), priority="중", assignee="김영기", done=False),
+            Task(title="대구 설비 점검 완료 보고", due_date=td(1), priority="중", assignee="최유진", done=True),
+            Task(title="주간보고 작성", due_date=tf(2), priority="중", assignee="박준호", done=False),
         ])
 
+        # ── 일정 ──
         db.add_all([
-            Task(title="ERP 설계 문서 검토", due_date=str(today + timedelta(days=2)), priority="상", assignee="김민수", done=False),
-            Task(title="견적서 작성", due_date=str(today + timedelta(days=1)), priority="중", assignee="이지은", done=False),
-            Task(title="현장 점검 보고서 제출", due_date=str(today - timedelta(days=1)), priority="중", assignee="최유진", done=True),
+            Schedule(title="쿠팡 담당자 현장 방문", date=tf(3), time="10:00", memo="부산 물류센터"),
+            Schedule(title="전사 안전교육 (정기)", date=tf(7), time="09:00", memo="전 현장 필수 참석"),
+            Schedule(title="CJ 4분기 계획 미팅", date=tf(10), time="14:00", memo=""),
         ])
 
+        # ── 인사이트 ──
         db.add_all([
-            Schedule(title="대한물산 정기 미팅", date=str(today + timedelta(days=2)), time="14:00", memo=""),
-            Schedule(title="그린에너지 협상", date=str(today + timedelta(days=5)), time="10:30", memo=""),
+            Insight(title="MFC 운영 효율화 방안", content="인력 배치를 시간대별 물량에 맞게 유동 운영하면 인시생산성 15% 향상 가능.", tags="운영, 효율화"),
+            Insight(title="택배 성수기 대비 전략", content="11~12월 물량 급증 대비 파견 인원 조기 확보 필요. 9월 중 계약 완료 목표.", tags="성수기, 인력"),
         ])
 
-        db.add_all([
-            Insight(title="2026 상반기 영업 전략", content="신규 고객 발굴을 위한 콜드콜 비중을 늘리고 전시회 참가를 확대한다.", tags="전략, 영업"),
-            Insight(title="ERP 시장 동향", content="중소기업 대상 클라우드 ERP 수요가 증가하는 추세.", tags="시장조사"),
-        ])
-
+        # ── 사용자 ──
         db.add_all([
             User(name="김영기", email="yg.kim80@gmail.com", role="admin"),
-            User(name="이지은", email="lee@zeniel.com", role="member"),
+            User(name="박준호", email="park@zeniel.com", role="member"),
+            User(name="이민철", email="lee@zeniel.com", role="member"),
+        ])
+
+        # ── 시간대별 물량 (최근 7일) ──
+        import random
+        sites = ["부산 물류센터", "인천 터미널"]
+        hours = [9, 12, 15, 18]
+        hour_targets = {9: 2800, 12: 3200, 15: 3500, 18: 2500}
+        for dd in range(6, -1, -1):
+            d = str(today - timedelta(days=dd))
+            for site in sites:
+                workers_base = 45 if site == "부산 물류센터" else 28
+                for h in hours:
+                    t = hour_targets[h]
+                    rate = random.uniform(0.88, 1.05)
+                    db.add(HourlyVolume(
+                        date=d, hour=h, site=site,
+                        target=t, actual=int(t * rate),
+                        worker_count=workers_base + random.randint(-3, 3),
+                    ))
+
+        # ── WorkLog (최근 14일) ──
+        work_types = ["입고분류", "출고분류", "배송준비", "반품처리"]
+        for dd in range(13, -1, -1):
+            d = str(today - timedelta(days=dd))
+            for site in sites:
+                wc = 45 if site == "부산 물류센터" else 28
+                t = random.randint(10000, 14000)
+                a = int(t * random.uniform(0.87, 1.02))
+                db.add(WorkLog(date=d, site=site, work_type=random.choice(work_types),
+                               target_qty=t, actual_qty=a, worker_count=wc,
+                               work_hours=8.0, notes=""))
+
+        # ── TBM 기록 (최근 5일) ──
+        safety_topics = [
+            "고소작업 시 안전벨트 착용 의무화 및 추락 방지망 확인",
+            "지게차 후진 시 후방 확인 및 보행자 통로 침범 금지",
+            "컨베이어 작동 중 이물질 제거 금지, 긴급정지 버튼 위치 숙지",
+            "무거운 화물 이동 시 2인 1조 작업 및 허리 보호대 착용",
+            "폭염 대비 수시 수분 섭취, 야외 작업 30분 초과 금지",
+        ]
+        teams = [("부산 물류센터", "박준호"), ("인천 터미널", "이민철")]
+        for dd in range(4, -1, -1):
+            d = str(today - timedelta(days=dd))
+            for site, leader in teams:
+                names = ["김철수", "이영희", "박민준", "최지수", "정대호", "강민서", "윤성훈"]
+                attendees = random.sample(names, random.randint(5, 7))
+                db.add(TBM(
+                    date=d, site=site, team="주간 1조", leader=leader,
+                    safety_topic=random.choice(safety_topics),
+                    work_plan="금일 목표 물량 달성 및 무재해 운영",
+                    attendees=str(attendees), attendee_count=len(attendees),
+                    status="완료",
+                ))
+
+        # ── 팀 피드 ──
+        db.add_all([
+            FeedPost(title="[긴급] 부산 센터 컨베이어 점검 안내", content="금일 15:00~16:00 2호 라인 정비로 일시 중단됩니다. 해당 시간 대체 라인으로 운영하세요.", author="박준호", category="공지"),
+            FeedPost(title="8월 2주차 물량 달성 현황", content="부산: 87,340건 (목표 94.1%)\n인천: 52,180건 (목표 96.2%)\n전체 우수한 성과입니다.", author="김영기", category="업무공유"),
+            FeedPost(title="안전교육 일정 안내", content="8월 18일(월) 09:00 전 현장 정기 안전교육 실시 예정입니다. 필수 참석 바랍니다.", author="이민철", category="공지"),
         ])
 
         db.commit()

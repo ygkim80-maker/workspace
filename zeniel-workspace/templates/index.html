@@ -28,6 +28,8 @@
       <div class="nav-section-label">물류현장</div>
       <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 일일 작업관리</div>
       <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 KPI 현황</div>
+      <div class="nav-item" data-page="hourly" onclick="navigate('hourly')">⏱ 시간대별 물량</div>
+      <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
       <div class="nav-section-label">협업</div>
       <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 문서함</div>
       <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 팀 피드</div>
@@ -235,6 +237,48 @@
             <canvas id="chart-workers" height="200"></canvas>
           </div>
         </div>
+      </section>
+
+      <!-- ===== 시간대별 물량 ===== -->
+      <section id="page-hourly" class="page">
+        <div class="toolbar">
+          <input id="hourly-date" type="date" onchange="loadHourly()"/>
+          <select id="hourly-site" onchange="loadHourly()">
+            <option value="">전체 현장</option>
+          </select>
+          <button class="btn-primary" onclick="addHourly()">+ 물량 입력</button>
+        </div>
+        <div id="hourly-cards" class="hourly-grid"></div>
+        <div class="hourly-bar-chart">
+          <div class="panel-header"><h3>시간대별 실적 추이</h3></div>
+          <canvas id="chart-hourly" height="120"></canvas>
+        </div>
+        <div class="hourly-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>날짜</th><th>시간대</th><th>현장</th><th>목표</th><th>실적</th><th>달성률</th><th>투입인원</th><th>비고</th><th>관리</th></tr></thead>
+            <tbody id="hourly-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TBM 기록 ===== -->
+      <section id="page-tbm" class="page">
+        <div class="toolbar">
+          <input id="tbm-date-from" type="date" onchange="loadTBM()"/>
+          <input id="tbm-date-to" type="date" onchange="loadTBM()" style="width:auto"/>
+          <select id="tbm-site-filter" onchange="loadTBM()">
+            <option value="">전체 현장</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addTBM()">+ TBM 등록</button>
+        </div>
+        <div class="kpi-row" id="tbm-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 TBM 횟수</span><span class="kpi-value" id="tbm-count">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">총 참석인원</span><span class="kpi-value" id="tbm-attendees">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">무재해 일수</span><span class="kpi-value" id="tbm-safe-days" style="color:var(--emerald)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">완료율</span><span class="kpi-value" id="tbm-complete-rate">-</span></div>
+        </div>
+        <div id="tbm-grid" class="tbm-grid"></div>
       </section>
 
       <!-- ===== 문서함 ===== -->

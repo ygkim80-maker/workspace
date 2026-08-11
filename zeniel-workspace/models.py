@@ -199,7 +199,35 @@ class WeeklyReportItem(Base):
     __tablename__ = "weekly_report_items"
     id = Column(Integer, primary_key=True, index=True)
     report_id = Column(Integer, ForeignKey("weekly_reports.id"), index=True)
-    category = Column(String)        # e.g. "3PL", "디버", "크립톤"
+    category = Column(String)
     sort_order = Column(Integer, default=0)
-    done_items = Column(Text)        # JSON array of strings
-    plan_items = Column(Text)        # JSON array of strings
+    done_items = Column(Text)
+    plan_items = Column(Text)
+
+
+class HourlyVolume(Base):
+    __tablename__ = "hourly_volumes"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    hour = Column(Integer)
+    site = Column(String)
+    target = Column(Integer, default=0)
+    actual = Column(Integer, default=0)
+    worker_count = Column(Integer, default=0)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TBM(Base):
+    __tablename__ = "tbm_records"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    team = Column(String)
+    leader = Column(String)
+    safety_topic = Column(Text)
+    work_plan = Column(Text)
+    attendees = Column(Text)
+    attendee_count = Column(Integer, default=0)
+    status = Column(String, default="완료")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -13,6 +13,7 @@ function navigate(page) {
     meetings: '미팅관리', emails: '메일관리', tasks: '할일', schedules: '일정',
     insights: '메모·인사이트', settings: '설정',
     worklog: '일일 작업관리', kpi: 'KPI 현황', documents: '문서함', feed: '팀 피드',
+    hourly: '시간대별 물량', tbm: 'TBM 기록',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -22,6 +23,7 @@ function navigate(page) {
     emails: loadEmails, tasks: loadTasks, schedules: loadSchedules,
     insights: loadInsights, settings: loadSettings,
     worklog: loadWorklog, kpi: loadKpi, documents: loadDocuments, feed: loadFeed,
+    hourly: loadHourly, tbm: loadTBM,
   };
   if (loaders[page]) loaders[page]();
 }
@@ -378,4 +380,282 @@ async function deletePost(id) {
   if (!confirm('게시글을 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/feed/${id}`);
   loadFeed();
+}
+
+// ===== 시간대별 물량 =====
+let chartHourly = null;
+
+async function loadHourly() {
+  const dateEl = document.getElementById('hourly-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+
+  const all = await api.get('/api/v1/hourly');
+
+  // populate site filter
+  const siteEl = document.getElementById('hourly-site');
+  const sites = [...new Set(all.map(r => r.site).filter(Boolean))];
+  const curSite = siteEl.value;
+  siteEl.innerHTML = '<option value="">전체 현장</option>' +
+    sites.map(s => `<option ${curSite === s ? 'selected' : ''}>${s}</option>`).join('');
+  siteEl.value = curSite;
+
+  const filtered = all.filter(r => {
+    if (dateEl.value && r.date !== dateEl.value) return false;
+    if (curSite && r.site !== curSite) return false;
+    return true;
+  });
+
+  // hour summary cards (aggregate all sites for the selected date)
+  const dateRows = all.filter(r => r.date === dateEl.value);
+  const hours = [9, 12, 15, 18];
+  document.getElementById('hourly-cards').innerHTML = hours.map(h => {
+    const hRows = dateRows.filter(r => r.hour === h);
+    const target = hRows.reduce((s, r) => s + (r.target || 0), 0);
+    const actual = hRows.reduce((s, r) => s + (r.actual || 0), 0);
+    const rate = target ? (actual / target * 100).toFixed(1) : null;
+    const isOver = rate && parseFloat(rate) >= 100;
+    return `<div class="hour-card ${rate ? (isOver ? 'over' : 'under') : ''}">
+      <div class="hour-label">${h}:00 시간대</div>
+      <div class="hour-stat-row">
+        <span class="hour-actual">${actual.toLocaleString()}</span>
+        <span class="hour-rate ${isOver ? 'over' : 'under'}">${rate ? rate + '%' : '-'}</span>
+      </div>
+      <div class="hour-target">목표 ${target.toLocaleString()}건</div>
+    </div>`;
+  }).join('');
+
+  // bar chart
+  const labels = filtered.map(r => `${r.hour}시 ${r.site || ''}`);
+  const targets = filtered.map(r => r.target || 0);
+  const actuals = filtered.map(r => r.actual || 0);
+  if (chartHourly) chartHourly.destroy();
+  chartHourly = new Chart(document.getElementById('chart-hourly'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '목표', data: targets, backgroundColor: 'rgba(107,138,171,.4)', borderColor: 'rgba(107,138,171,.7)', borderWidth: 1 },
+        { label: '실적', data: actuals, backgroundColor: 'rgba(56,189,248,.7)', borderColor: '#38bdf8', borderWidth: 1 },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top', labels: { color: '#6b8aab' } } },
+      scales: {
+        x: { ticks: { color: '#6b8aab' }, grid: { color: '#1a3555' } },
+        y: { ticks: { color: '#6b8aab' }, grid: { color: '#1a3555' } },
+      },
+    },
+  });
+
+  // table
+  document.getElementById('hourly-tbody').innerHTML = filtered.map(r => {
+    const rate = r.target ? (r.actual / r.target * 100).toFixed(1) : '-';
+    const rateColor = r.target && r.actual / r.target >= 1 ? 'var(--emerald)' : 'var(--danger)';
+    return `<tr>
+      <td>${r.date || '-'}</td>
+      <td>${r.hour}:00</td>
+      <td>${r.site || '-'}</td>
+      <td>${(r.target || 0).toLocaleString()}</td>
+      <td>${(r.actual || 0).toLocaleString()}</td>
+      <td style="font-weight:700;color:${rateColor}">${rate !== '-' ? rate + '%' : '-'}</td>
+      <td>${r.worker_count || 0}명</td>
+      <td>${r.notes || '-'}</td>
+      <td>
+        <button class="btn-icon" onclick="editHourly(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteHourly(${r.id})">삭제</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty-state">데이터가 없습니다</td></tr>';
+}
+
+function hourlyForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${r.date || today}"></div>
+      <div class="form-group"><label>시간대</label>
+        <select name="hour">
+          ${[9,12,15,18].map(h => `<option value="${h}" ${r.hour === h ? 'selected' : ''}>${h}:00</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>현장명</label><input name="site" value="${r.site || ''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>목표량</label><input name="target" type="number" value="${r.target || 0}"></div>
+      <div class="form-group"><label>실적량</label><input name="actual" type="number" value="${r.actual || 0}"></div>
+      <div class="form-group"><label>투입인원</label><input name="worker_count" type="number" value="${r.worker_count || 0}"></div>
+    </div>
+    <div class="form-group"><label>비고</label><textarea name="notes">${r.notes || ''}</textarea></div>`;
+}
+
+function addHourly() {
+  showModal('시간대 물량 입력', hourlyForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'hour', 'site', 'target', 'actual', 'worker_count', 'notes']);
+    d.hour = parseInt(d.hour);
+    d.target = parseInt(d.target) || 0;
+    d.actual = parseInt(d.actual) || 0;
+    d.worker_count = parseInt(d.worker_count) || 0;
+    await api.post('/api/v1/hourly/', d);
+    loadHourly();
+  });
+}
+
+async function editHourly(id) {
+  const r = await api.get(`/api/v1/hourly/${id}`);
+  showModal('시간대 물량 수정', hourlyForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'hour', 'site', 'target', 'actual', 'worker_count', 'notes']);
+    d.hour = parseInt(d.hour);
+    d.target = parseInt(d.target) || 0;
+    d.actual = parseInt(d.actual) || 0;
+    d.worker_count = parseInt(d.worker_count) || 0;
+    await api.put(`/api/v1/hourly/${id}`, d);
+    loadHourly();
+  });
+}
+
+async function deleteHourly(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/hourly/${id}`);
+  loadHourly();
+}
+
+// ===== TBM 기록 =====
+async function loadTBM() {
+  const fromEl = document.getElementById('tbm-date-from');
+  const toEl = document.getElementById('tbm-date-to');
+  const siteEl = document.getElementById('tbm-site-filter');
+
+  if (!fromEl.value) {
+    const d = new Date(); d.setDate(d.getDate() - 14);
+    fromEl.value = d.toISOString().slice(0, 10);
+  }
+  if (!toEl.value) toEl.value = new Date().toISOString().slice(0, 10);
+
+  const all = await api.get('/api/v1/tbm');
+
+  // populate site filter
+  const sites = [...new Set(all.map(r => r.site).filter(Boolean))];
+  const curSite = siteEl.value;
+  siteEl.innerHTML = '<option value="">전체 현장</option>' +
+    sites.map(s => `<option ${curSite === s ? 'selected' : ''}>${s}</option>`).join('');
+  siteEl.value = curSite;
+
+  const filtered = all.filter(r => {
+    if (fromEl.value && r.date < fromEl.value) return false;
+    if (toEl.value && r.date > toEl.value) return false;
+    if (curSite && r.site !== curSite) return false;
+    return true;
+  });
+
+  // KPI
+  const totalAttendees = filtered.reduce((s, r) => s + (r.attendee_count || 0), 0);
+  const completed = filtered.filter(r => r.status === '완료').length;
+  const completeRate = filtered.length ? Math.round(completed / filtered.length * 100) : 0;
+
+  // 무재해 일수: 오늘 기준 days since last issue (simplified: days since first TBM in set)
+  let safeDays = '-';
+  if (filtered.length) {
+    const first = filtered.map(r => r.date).sort()[0];
+    const diff = Math.floor((new Date() - new Date(first)) / 86400000);
+    safeDays = diff + '일';
+  }
+
+  document.getElementById('tbm-count').textContent = filtered.length;
+  document.getElementById('tbm-attendees').textContent = totalAttendees + '명';
+  document.getElementById('tbm-safe-days').textContent = safeDays;
+  document.getElementById('tbm-complete-rate').textContent = completeRate + '%';
+
+  // cards grid
+  document.getElementById('tbm-grid').innerHTML = filtered.sort((a, b) => b.date > a.date ? 1 : -1).map(r => {
+    const attendees = (() => {
+      try { return JSON.parse(r.attendees || '[]'); } catch { return []; }
+    })();
+    const statusClass = r.status === '완료' ? 'badge-safety' : 'badge-warning';
+    return `<div class="tbm-card">
+      <div class="tbm-card-header">
+        <div>
+          <div class="tbm-card-title">${r.site || '-'} · ${r.team || '-'}</div>
+          <div class="tbm-card-meta">${r.date || ''} | 리더: ${r.leader || '-'}</div>
+        </div>
+        <span class="badge ${statusClass}">${r.status || '완료'}</span>
+      </div>
+      <div class="tbm-detail-row">
+        <div class="tbm-detail-item">
+          <span class="tbm-detail-label">안전주제</span>
+          <span class="tbm-detail-value">${r.safety_topic || '-'}</span>
+        </div>
+        <div class="tbm-detail-item">
+          <span class="tbm-detail-label">작업계획</span>
+          <span class="tbm-detail-value">${r.work_plan || '-'}</span>
+        </div>
+        <div class="tbm-detail-item">
+          <span class="tbm-detail-label">참석인원</span>
+          <span class="tbm-detail-value">${r.attendee_count || 0}명${attendees.length ? ' · ' + attendees.slice(0, 3).join(', ') + (attendees.length > 3 ? ' 외' : '') : ''}</span>
+        </div>
+      </div>
+      <div class="tbm-actions">
+        <button class="btn-icon" onclick="editTBM(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteTBM(${r.id})">삭제</button>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--muted);padding:20px">TBM 기록이 없습니다.</p>';
+}
+
+function tbmForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const attendeesVal = (() => {
+    try { return JSON.parse(r.attendees || '[]').join(', '); } catch { return ''; }
+  })();
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${r.date || today}"></div>
+      <div class="form-group"><label>상태</label>
+        <select name="status">
+          <option ${r.status === '완료' ? 'selected' : ''}>완료</option>
+          <option ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
+          <option ${r.status === '취소' ? 'selected' : ''}>취소</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>현장</label><input name="site" value="${r.site || ''}"></div>
+      <div class="form-group"><label>팀</label><input name="team" value="${r.team || ''}"></div>
+      <div class="form-group"><label>리더</label><input name="leader" value="${r.leader || ''}"></div>
+    </div>
+    <div class="form-group"><label>안전 주제</label><textarea name="safety_topic">${r.safety_topic || ''}</textarea></div>
+    <div class="form-group"><label>작업 계획</label><textarea name="work_plan">${r.work_plan || ''}</textarea></div>
+    <div class="form-group"><label>참석자 (쉼표 구분)</label><input name="attendees_raw" value="${attendeesVal}"></div>
+    <div class="form-group"><label>참석인원 수</label><input name="attendee_count" type="number" value="${r.attendee_count || 0}"></div>`;
+}
+
+function addTBM() {
+  showModal('TBM 등록', tbmForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'team', 'leader', 'safety_topic', 'work_plan', 'attendees_raw', 'attendee_count', 'status']);
+    const names = d.attendees_raw.split(',').map(s => s.trim()).filter(Boolean);
+    d.attendees = JSON.stringify(names);
+    d.attendee_count = parseInt(d.attendee_count) || names.length;
+    delete d.attendees_raw;
+    await api.post('/api/v1/tbm/', d);
+    loadTBM();
+  });
+}
+
+async function editTBM(id) {
+  const r = await api.get(`/api/v1/tbm/${id}`);
+  showModal('TBM 수정', tbmForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'team', 'leader', 'safety_topic', 'work_plan', 'attendees_raw', 'attendee_count', 'status']);
+    const names = d.attendees_raw.split(',').map(s => s.trim()).filter(Boolean);
+    d.attendees = JSON.stringify(names);
+    d.attendee_count = parseInt(d.attendee_count) || names.length;
+    delete d.attendees_raw;
+    await api.put(`/api/v1/tbm/${id}`, d);
+    loadTBM();
+  });
+}
+
+async function deleteTBM(id) {
+  if (!confirm('TBM 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/tbm/${id}`);
+  loadTBM();
 }

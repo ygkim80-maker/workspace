@@ -339,6 +339,42 @@ class FeedCommentOut(FeedCommentBase):
     created_at: Optional[datetime] = None
 
 
+class HourlyVolumeBase(BaseModel):
+    date: Optional[str] = None
+    hour: Optional[int] = 9
+    site: Optional[str] = None
+    target: Optional[int] = 0
+    actual: Optional[int] = 0
+    worker_count: Optional[int] = 0
+    notes: Optional[str] = None
+
+class HourlyVolumeCreate(HourlyVolumeBase): pass
+class HourlyVolumeUpdate(HourlyVolumeBase): pass
+class HourlyVolumeOut(HourlyVolumeBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class TBMBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    team: Optional[str] = None
+    leader: Optional[str] = None
+    safety_topic: Optional[str] = None
+    work_plan: Optional[str] = None
+    attendees: Optional[str] = "[]"
+    attendee_count: Optional[int] = 0
+    status: Optional[str] = "완료"
+
+class TBMCreate(TBMBase): pass
+class TBMUpdate(TBMBase): pass
+class TBMOut(TBMBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
 from typing import List
 
 class WeeklyReportItemBase(BaseModel):
