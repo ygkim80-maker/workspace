@@ -4,15 +4,15 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import HourlyVolume
 from schemas import HourlyVolumeCreate, HourlyVolumeOut, HourlyVolumeUpdate
-from routers._base import make_crud
+from routers._base import make_crud_router
 
-router = make_crud(
+router = make_crud_router(
     prefix="/api/v1/hourly",
     model=HourlyVolume,
     create_schema=HourlyVolumeCreate,
     update_schema=HourlyVolumeUpdate,
     out_schema=HourlyVolumeOut,
-    tags=["hourly"],
+    tag="hourly",
 )
 
 
