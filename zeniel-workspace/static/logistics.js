@@ -568,40 +568,75 @@ async function loadTBM() {
   document.getElementById('tbm-safe-days').textContent = safeDays;
   document.getElementById('tbm-complete-rate').textContent = completeRate + '%';
 
-  // cards grid
-  document.getElementById('tbm-grid').innerHTML = filtered.sort((a, b) => b.date > a.date ? 1 : -1).map(r => {
-    const attendees = (() => {
-      try { return JSON.parse(r.attendees || '[]'); } catch { return []; }
+  // 날짜별 그룹핑 accordion
+  const sorted = filtered.sort((a, b) => b.date > a.date ? 1 : -1);
+  const groups = {};
+  sorted.forEach(r => {
+    const key = r.date || '날짜 미상';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('tbm-grid').innerHTML = Object.keys(groups).length ? Object.entries(groups).map(([date, records], gi) => {
+    const isToday = date === todayStr;
+    const isOpen = gi === 0; // 가장 최신 날짜만 기본 펼침
+    const groupId = `tbm-group-${gi}`;
+    const completedCount = records.filter(r => r.status === '완료').length;
+    const totalAttend = records.reduce((s, r) => s + (r.attendee_count || 0), 0);
+    const dateLabel = (() => {
+      const d = new Date(date + 'T00:00:00');
+      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     })();
-    const statusClass = r.status === '완료' ? 'badge-safety' : 'badge-warning';
-    return `<div class="tbm-card">
-      <div class="tbm-card-header">
-        <div>
-          <div class="tbm-card-title">${r.site || '-'} · ${r.team || '-'}</div>
-          <div class="tbm-card-meta">${r.date || ''} | 리더: ${r.leader || '-'}</div>
+
+    const cards = records.map(r => {
+      const attendees = (() => { try { return JSON.parse(r.attendees || '[]'); } catch { return []; } })();
+      const statusClass = r.status === '완료' ? 'badge-safety' : 'badge-warning';
+      return `<div class="tbm-card">
+        <div class="tbm-card-header">
+          <div>
+            <div class="tbm-card-title">${r.site || '-'} · ${r.team || '-'}</div>
+            <div class="tbm-card-meta">리더: ${r.leader || '-'}</div>
+          </div>
+          <span class="badge ${statusClass}">${r.status || '완료'}</span>
         </div>
-        <span class="badge ${statusClass}">${r.status || '완료'}</span>
-      </div>
-      <div class="tbm-detail-row">
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">안전주제</span>
-          <span class="tbm-detail-value">${r.safety_topic || '-'}</span>
+        <div class="tbm-detail-row">
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">안전주제</span>
+            <span class="tbm-detail-value">${r.safety_topic || '-'}</span>
+          </div>
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">작업계획</span>
+            <span class="tbm-detail-value">${r.work_plan || '-'}</span>
+          </div>
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">참석인원</span>
+            <span class="tbm-detail-value">${r.attendee_count || 0}명${attendees.length ? ' · ' + attendees.slice(0, 3).join(', ') + (attendees.length > 3 ? ' 외' : '') : ''}</span>
+          </div>
         </div>
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">작업계획</span>
-          <span class="tbm-detail-value">${r.work_plan || '-'}</span>
+        <div class="tbm-actions">
+          <button class="btn-icon" onclick="editTBM(${r.id})">수정</button>
+          <button class="btn-danger" onclick="deleteTBM(${r.id})">삭제</button>
         </div>
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">참석인원</span>
-          <span class="tbm-detail-value">${r.attendee_count || 0}명${attendees.length ? ' · ' + attendees.slice(0, 3).join(', ') + (attendees.length > 3 ? ' 외' : '') : ''}</span>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="tbm-accordion">
+        <div class="tbm-acc-header ${isOpen ? 'open' : ''}" onclick="toggleTbmGroup('${groupId}')">
+          <div class="tbm-acc-date">
+            ${isToday ? '<span class="tbm-today-badge">오늘</span>' : ''}
+            <span class="tbm-acc-datetext">${dateLabel}</span>
+            <span class="tbm-acc-sub">${records.length}건 · 참석 ${totalAttend}명 · 완료 ${completedCount}/${records.length}</span>
+          </div>
+          <span class="tbm-acc-chevron">${isOpen ? '▲' : '▼'}</span>
         </div>
-      </div>
-      <div class="tbm-actions">
-        <button class="btn-icon" onclick="editTBM(${r.id})">수정</button>
-        <button class="btn-danger" onclick="deleteTBM(${r.id})">삭제</button>
-      </div>
-    </div>`;
-  }).join('') || '<p style="color:var(--muted);padding:20px">TBM 기록이 없습니다.</p>';
+        <div class="tbm-acc-body ${isOpen ? 'open' : ''}" id="${groupId}">
+          <div class="tbm-grid">${cards}</div>
+        </div>
+      </div>`;
+  }).join('') : '<p style="color:var(--muted);padding:20px">TBM 기록이 없습니다.</p>';
 }
 
 function tbmForm(r = {}) {
@@ -660,6 +695,16 @@ async function deleteTBM(id) {
   if (!confirm('TBM 기록을 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/tbm/${id}`);
   loadTBM();
+}
+
+function toggleTbmGroup(groupId) {
+  const body = document.getElementById(groupId);
+  const header = body?.previousElementSibling;
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (header) header.classList.toggle('open', !isOpen);
+  if (header) header.querySelector('.tbm-acc-chevron').textContent = isOpen ? '▼' : '▲';
 }
 
 // ===== 안전교육 관리 (Safety Education) =====
