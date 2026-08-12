@@ -441,3 +441,17 @@ body {
 .sd-issue-card-title { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .sd-issue-card-content { font-size: .82rem; color: var(--muted); line-height: 1.7; white-space: pre-wrap; }
 .text-danger { color: var(--danger); font-weight: 700; }
+
+/* 워크스페이스 전환 탭 */
+.ws-tabs { display: flex; gap: 0; padding: 10px 12px 0; }
+.ws-tab {
+  flex: 1; padding: 8px 4px; font-size: .75rem; font-weight: 700;
+  background: var(--card2); color: var(--muted);
+  border: 1px solid var(--border); cursor: pointer;
+  transition: background .15s, color .15s;
+  letter-spacing: .3px;
+}
+.ws-tab:first-child { border-radius: 8px 0 0 8px; border-right: none; }
+.ws-tab:last-child { border-radius: 0 8px 8px 0; }
+.ws-tab.active { background: var(--amber); color: #0a0a0a; border-color: var(--amber); }
+.ws-tab:not(.active):hover { background: var(--card); color: var(--text); }

@@ -1,3 +1,20 @@
+// ===== 워크스페이스 전환 =====
+let currentWorkspace = 'logistics';
+
+function switchWorkspace(ws) {
+  currentWorkspace = ws;
+  document.getElementById('nav-logistics').style.display = ws === 'logistics' ? '' : 'none';
+  document.getElementById('nav-special').style.display = ws === 'special' ? '' : 'none';
+  document.getElementById('ws-tab-logistics').classList.toggle('active', ws === 'logistics');
+  document.getElementById('ws-tab-special').classList.toggle('active', ws === 'special');
+
+  if (ws === 'logistics') {
+    navigate('dashboard');
+  } else {
+    navigate('sd-dashboard');
+  }
+}
+
 // ===== navigate 확장 =====
 const _origNavigate = navigate;
 function navigate(page) {
