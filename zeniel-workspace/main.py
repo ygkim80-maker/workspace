@@ -183,6 +183,13 @@ def weekly_report(db: Session = Depends(get_db)):
 def seed_data():
     db = SessionLocal()
     try:
+        # 안전보건 기초 데이터 (항상 먼저 실행)
+        try:
+            from seed_safety import seed_safety_guides
+            seed_safety_guides(db)
+        except Exception:
+            pass
+
         if db.query(Lead).count() > 0:
             return
 
