@@ -355,3 +355,46 @@ body {
   .wr-sidebar, .wr-editor-top, .sidebar, .topbar { display: none !important; }
   .wr-table-wrap { box-shadow: none; }
 }
+
+/* ===== 안전보건 관리 ===== */
+.sm-tabs { display: flex; gap: 4px; padding: 0 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.sm-tab { padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: .85rem; cursor: pointer; transition: all .12s; }
+.sm-tab:hover { color: var(--text); border-color: var(--sky); }
+.sm-tab.active { background: var(--sky); color: #000; font-weight: 700; border-color: var(--sky); }
+.sm-tab-body { animation: fadeIn .15s ease; }
+
+/* 체크리스트 */
+.sm-cl-list { display: flex; flex-direction: column; gap: 8px; }
+.cl-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-left: 4px solid var(--border); }
+.cl-card.cl-ok { border-left-color: var(--emerald); }
+.cl-card.cl-ng { border-left-color: var(--danger); }
+.cl-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.cl-card-title { font-size: .88rem; font-weight: 700; color: var(--text); }
+.cl-card-sub { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+.cl-ng-items { font-size: .78rem; color: var(--danger); background: rgba(248,113,113,.08); border-radius: 6px; padding: 7px 10px; margin: 6px 0; }
+.cl-notes { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+/* 체크리스트 작성 모달 */
+.cl-checklist-wrap { margin-top: 14px; max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.cl-section { background: var(--card2); border-radius: 8px; padding: 12px; }
+.cl-section-title { font-size: .8rem; font-weight: 800; color: var(--amber); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.cl-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cl-item:last-child { border-bottom: none; }
+.cl-item-text { font-size: .82rem; color: var(--text); flex: 1; line-height: 1.5; }
+.cl-item-controls { display: flex; flex-direction: column; gap: 4px; min-width: 140px; align-items: flex-end; }
+.cl-radio { display: flex; align-items: center; gap: 5px; font-size: .78rem; cursor: pointer; white-space: nowrap; }
+.cl-radio.ok { color: var(--emerald); }
+.cl-radio.ng { color: var(--danger); }
+.cl-item-note { width: 130px; padding: 4px 8px; font-size: .76rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-top: 4px; }
+
+/* 매뉴얼·지침 */
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 4px; }
+.guide-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.guide-card-top { display: flex; justify-content: space-between; align-items: center; }
+.guide-cat-badge { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; }
+.guide-rev { font-size: .7rem; color: var(--muted); background: var(--card2); padding: 2px 8px; border-radius: 20px; }
+.guide-title { font-size: .92rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+.guide-meta { font-size: .74rem; color: var(--muted); }
+.guide-content { font-size: .78rem; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+.guide-link { font-size: .78rem; color: var(--sky); text-decoration: none; margin-top: 4px; }
+.guide-link:hover { text-decoration: underline; }

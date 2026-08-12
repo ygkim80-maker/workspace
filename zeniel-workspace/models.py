@@ -256,3 +256,29 @@ class Staffing(Base):
     dispatch = Column(Integer, default=0)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyChecklist(Base):
+    __tablename__ = "safety_checklists"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    check_type = Column(String)       # 일일 / 주간 / 월간
+    responses = Column(Text)          # JSON: [{item, ok, note}]
+    completed_by = Column(String)
+    overall_ok = Column(Integer, default=1)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyGuide(Base):
+    __tablename__ = "safety_guides"
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String)         # 법령 / 사내지침 / 매뉴얼 / 기타
+    title = Column(String)
+    content = Column(Text)
+    file_url = Column(String)
+    revision = Column(String)         # 개정번호 (예: Rev.3)
+    effective_date = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

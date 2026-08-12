@@ -15,6 +15,7 @@ function navigate(page) {
     worklog: '일일 작업관리', kpi: 'KPI 현황', documents: '문서함', feed: '팀 피드',
     hourly: '시간대별 물량', tbm: 'TBM 기록',
     'safety-edu': '안전교육 관리', staffing: '인원 배치',
+    'safety-mgmt': '안전보건 관리',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -26,6 +27,7 @@ function navigate(page) {
     worklog: loadWorklog, kpi: loadKpi, documents: loadDocuments, feed: loadFeed,
     hourly: loadHourly, tbm: loadTBM,
     'safety-edu': loadSafetyEdu, staffing: loadStaffing,
+    'safety-mgmt': loadSafetyMgmt,
   };
   if (loaders[page]) loaders[page]();
 }
@@ -888,4 +890,362 @@ async function deleteStaffing(id) {
   if (!confirm('배치 기록을 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/staffing/${id}`);
   loadStaffing();
+}
+
+// ===== 안전보건 관리 =====
+
+// 유형별 체크리스트 항목 정의 (산업안전보건법 기준)
+const CHECKLIST_TEMPLATES = {
+  일일: [
+    { section: '작업장 환경', items: [
+      '작업장 통로 및 비상구 확보 여부',
+      '작업장 조명 정상 여부',
+      '바닥 미끄럼 방지 조치 여부',
+      '전기 배선 및 콘센트 정상 여부',
+      '소화기 위치 확인 및 접근 가능 여부',
+    ]},
+    { section: '개인보호구', items: [
+      '안전모 착용 여부',
+      '안전화 착용 여부',
+      '작업에 적합한 PPE 착용 여부',
+      '보호구 손상·불량 여부 확인',
+    ]},
+    { section: '장비·설비', items: [
+      '지게차·하역장비 외관 이상 여부',
+      '컨베이어벨트 정상 작동 여부',
+      '안전 덮개·방호장치 설치 여부',
+      '비상정지 스위치 작동 여부',
+    ]},
+    { section: '작업 전 안전 확인', items: [
+      'TBM(위험예지훈련) 실시 여부',
+      '작업 지시·절차 숙지 여부',
+      '유해·위험 작업 사전 허가 여부',
+    ]},
+  ],
+  주간: [
+    { section: '안전 설비 점검', items: [
+      '소화기 압력·유효기간 확인',
+      '비상조명등 점등 여부',
+      '경보설비 (화재경보기) 작동 확인',
+      '방화문 자동 닫힘 기능 확인',
+      '안전표지판 부착 상태',
+      '위험물 보관창고 시건 및 표시 여부',
+    ]},
+    { section: '작업환경 점검', items: [
+      '소음 측정 및 기준 초과 여부 확인',
+      '분진 발생 작업장 환기 상태',
+      '화학물질 MSDS 게시 여부',
+      '폐기물 분리수거 및 처리 현황',
+    ]},
+    { section: '장비 정기 점검', items: [
+      '지게차 일상점검표 기록 확인',
+      '고소작업대 안전장치 점검',
+      '전기설비 절연 상태 확인',
+      '압력용기 압력계 정상 여부',
+    ]},
+    { section: '안전 관리 행정', items: [
+      '안전교육 일지 작성 여부',
+      '아차사고 보고 현황 확인',
+      '작업허가서 발행 및 관리 현황',
+      '협력업체 안전 관리 현황 확인',
+    ]},
+  ],
+  월간: [
+    { section: '법정 점검 사항', items: [
+      '안전보건관리책임자 업무 수행 확인',
+      '산업안전보건위원회 회의록 작성',
+      '근로자 안전보건교육 실시 여부 (월 1회 이상)',
+      '안전점검 결과 및 개선 조치 이행 여부',
+      '중대재해처벌법 이행 점검',
+    ]},
+    { section: '건강 관리', items: [
+      '근로자 건강검진 대상자 관리',
+      '야간 작업자 특수건강검진 관리',
+      '뇌심혈관질환 예방 프로그램 운영',
+      '직업병 유소견자 사후 관리',
+    ]},
+    { section: '비상 대응', items: [
+      '비상연락망 최신 여부 확인',
+      '소방훈련 실시 여부 (반기 1회 이상)',
+      '구급약품 유효기간 및 구비 상태',
+      '비상대피로 지도 게시 여부',
+    ]},
+    { section: '협력업체 관리', items: [
+      '협력업체 안전보건관리 계획서 확인',
+      '협력업체 근로자 안전교육 이수 확인',
+      '혼재 작업 위험성평가 실시 여부',
+      '협력업체 재해 발생 현황 확인',
+    ]},
+    { section: '위험성 평가', items: [
+      '위험성평가 실시 및 기록 관리',
+      '신규 작업·설비 위험성평가 여부',
+      '개선 조치 이행 현황 점검',
+    ]},
+  ],
+};
+
+function switchSmTab(tab) {
+  document.querySelectorAll('.sm-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('sm-tab-checklist').style.display = tab === 'checklist' ? '' : 'none';
+  document.getElementById('sm-tab-guide').style.display = tab === 'guide' ? '' : 'none';
+  if (tab === 'guide') loadSafetyGuides();
+}
+
+async function loadSafetyMgmt() {
+  const type = document.getElementById('cl-type').value;
+  const site = document.getElementById('cl-site').value;
+  const from = document.getElementById('cl-date-from').value;
+  const to   = document.getElementById('cl-date-to').value;
+
+  let url = `/api/v1/safety_checklists?check_type=${encodeURIComponent(type)}`;
+  if (site) url += `&site=${encodeURIComponent(site)}`;
+  if (from) url += `&date_from=${from}`;
+  if (to)   url += `&date_to=${to}`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  const okCount = rows.filter(r => r.overall_ok).length;
+  const ngCount = rows.length - okCount;
+  const rate = rows.length ? Math.round(okCount / rows.length * 100) : 0;
+
+  document.getElementById('cl-total').textContent = rows.length;
+  document.getElementById('cl-ok').textContent = okCount;
+  document.getElementById('cl-ng').textContent = ngCount;
+  document.getElementById('cl-rate').textContent = rate + '%';
+
+  const sorted = rows.sort((a, b) => b.date > a.date ? 1 : -1);
+
+  // 날짜별 accordion
+  const groups = {};
+  sorted.forEach(r => {
+    const key = r.date || '날짜 미상';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('cl-list').innerHTML = Object.keys(groups).length
+    ? Object.entries(groups).map(([date, recs], gi) => {
+        const isToday = date === todayStr;
+        const gId = `cl-group-${gi}`;
+        const isOpen = gi === 0;
+        const okN = recs.filter(r => r.overall_ok).length;
+        const dateLabel = (() => {
+          const d = new Date(date + 'T00:00:00');
+          return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+        })();
+        const cards = recs.map(r => {
+          let responses = [];
+          try { responses = JSON.parse(r.responses || '[]'); } catch {}
+          const total = responses.length;
+          const ok = responses.filter(x => x.ok).length;
+          const ng = responses.filter(x => !x.ok);
+          return `<div class="cl-card ${r.overall_ok ? 'cl-ok' : 'cl-ng'}">
+            <div class="cl-card-header">
+              <div>
+                <div class="cl-card-title">${r.site || '-'} · ${r.check_type} 점검</div>
+                <div class="cl-card-sub">점검자: ${r.completed_by || '-'} | 항목 ${ok}/${total} 적합</div>
+              </div>
+              <span class="badge ${r.overall_ok ? 'badge-safety' : 'badge-danger'}">${r.overall_ok ? '적합' : '부적합'}</span>
+            </div>
+            ${ng.length ? `<div class="cl-ng-items">⚠️ 부적합 항목: ${ng.map(x => x.item).join(' / ')}</div>` : ''}
+            ${r.notes ? `<div class="cl-notes">📝 ${r.notes}</div>` : ''}
+            <div class="tbm-actions">
+              <button class="btn-icon" onclick="viewChecklist(${r.id})">상세보기</button>
+              <button class="btn-danger" onclick="deleteChecklist(${r.id})">삭제</button>
+            </div>
+          </div>`;
+        }).join('');
+        return `<div class="tbm-accordion">
+          <div class="tbm-acc-header ${isOpen ? 'open' : ''}" onclick="toggleClGroup('${gId}')">
+            <div class="tbm-acc-date">
+              ${isToday ? '<span class="tbm-today-badge">오늘</span>' : ''}
+              <span class="tbm-acc-datetext">${dateLabel}</span>
+              <span class="tbm-acc-sub">${recs.length}건 · 적합 ${okN}/${recs.length}</span>
+            </div>
+            <span class="tbm-acc-chevron">${isOpen ? '▲' : '▼'}</span>
+          </div>
+          <div class="tbm-acc-body ${isOpen ? 'open' : ''}" id="${gId}">
+            <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">${cards}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--muted);padding:24px">점검 기록이 없습니다. [점검 실시] 버튼으로 체크리스트를 작성하세요.</p>';
+}
+
+function startChecklist() {
+  const type = document.getElementById('cl-type').value;
+  const template = CHECKLIST_TEMPLATES[type];
+  const today = new Date().toISOString().slice(0, 10);
+
+  const itemsHtml = template.map((sec, si) => `
+    <div class="cl-section">
+      <div class="cl-section-title">${sec.section}</div>
+      ${sec.items.map((item, ii) => `
+        <div class="cl-item" id="cli-${si}-${ii}">
+          <div class="cl-item-text">${item}</div>
+          <div class="cl-item-controls">
+            <label class="cl-radio ok"><input type="radio" name="cl-${si}-${ii}" value="ok" checked> ✔ 적합</label>
+            <label class="cl-radio ng"><input type="radio" name="cl-${si}-${ii}" value="ng"> ✘ 부적합</label>
+            <input class="cl-item-note" name="note-${si}-${ii}" placeholder="특이사항" style="display:none"/>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+
+  const formHtml = `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${today}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value=""></div>
+    </div>
+    <div class="form-group"><label>점검자</label><input name="completed_by" value=""></div>
+    <div class="cl-checklist-wrap">${itemsHtml}</div>
+    <div class="form-group" style="margin-top:12px"><label>종합 의견</label><textarea name="notes" rows="2"></textarea></div>`;
+
+  showModal(`${type} 안전점검 체크리스트`, formHtml, async (overlay) => {
+    // 부적합 항목에 note input 보이기 로직
+    const responses = [];
+    template.forEach((sec, si) => {
+      sec.items.forEach((item, ii) => {
+        const val = overlay.querySelector(`input[name="cl-${si}-${ii}"]:checked`)?.value;
+        const note = overlay.querySelector(`input[name="note-${si}-${ii}"]`)?.value || '';
+        responses.push({ item, ok: val !== 'ng', note });
+      });
+    });
+    const overallOk = responses.every(r => r.ok) ? 1 : 0;
+    const d = {
+      date: overlay.querySelector('[name="date"]').value,
+      site: overlay.querySelector('[name="site"]').value,
+      check_type: type,
+      responses: JSON.stringify(responses),
+      completed_by: overlay.querySelector('[name="completed_by"]').value,
+      overall_ok: overallOk,
+      notes: overlay.querySelector('[name="notes"]').value,
+    };
+    await api.post('/api/v1/safety_checklists', d);
+    loadSafetyMgmt();
+  });
+
+  // NG 선택 시 note 입력창 표시
+  setTimeout(() => {
+    document.querySelectorAll('.cl-item input[type="radio"]').forEach(radio => {
+      radio.addEventListener('change', e => {
+        const noteEl = e.target.closest('.cl-item').querySelector('.cl-item-note');
+        if (noteEl) noteEl.style.display = e.target.value === 'ng' ? 'block' : 'none';
+      });
+    });
+  }, 50);
+}
+
+async function viewChecklist(id) {
+  const r = await api.get(`/api/v1/safety_checklists/${id}`);
+  let responses = [];
+  try { responses = JSON.parse(r.responses || '[]'); } catch {}
+  const rows = responses.map(x => `
+    <tr>
+      <td>${x.item}</td>
+      <td><span class="badge ${x.ok ? 'badge-safety' : 'badge-danger'}">${x.ok ? '적합' : '부적합'}</span></td>
+      <td style="color:var(--muted);font-size:.8rem">${x.note || '-'}</td>
+    </tr>`).join('');
+  const html = `
+    <div style="margin-bottom:12px;font-size:.85rem;color:var(--muted)">
+      ${r.date} | ${r.site || '-'} | 점검자: ${r.completed_by || '-'}
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" style="font-size:.82rem">
+        <thead><tr><th>점검 항목</th><th>결과</th><th>특이사항</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${r.notes ? `<div style="margin-top:12px;padding:10px;background:var(--card2);border-radius:8px;font-size:.85rem">📝 ${r.notes}</div>` : ''}`;
+  showModal(`${r.check_type} 점검 상세`, html, async () => {});
+}
+
+async function deleteChecklist(id) {
+  if (!confirm('점검 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_checklists/${id}`);
+  loadSafetyMgmt();
+}
+
+function toggleClGroup(gId) {
+  const body = document.getElementById(gId);
+  const header = body?.previousElementSibling;
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (header) header.classList.toggle('open', !isOpen);
+  if (header) header.querySelector('.tbm-acc-chevron').textContent = isOpen ? '▼' : '▲';
+}
+
+// ===== 매뉴얼·지침 =====
+async function loadSafetyGuides() {
+  const cat = document.getElementById('guide-cat-filter').value;
+  let url = '/api/v1/safety_guides';
+  if (cat) url += `?category=${encodeURIComponent(cat)}`;
+  let rows = [];
+  try { rows = await api.get(url); } catch {}
+
+  const catColors = { '법령': 'var(--danger)', '사내지침': 'var(--amber)', '매뉴얼': 'var(--sky)', '기타': 'var(--muted)' };
+
+  document.getElementById('guide-grid').innerHTML = rows.length ? rows.map(r => `
+    <div class="guide-card">
+      <div class="guide-card-top">
+        <span class="guide-cat-badge" style="color:${catColors[r.category]||'var(--muted)'}">${r.category || '기타'}</span>
+        ${r.revision ? `<span class="guide-rev">${r.revision}</span>` : ''}
+      </div>
+      <div class="guide-title">${r.title || '(제목없음)'}</div>
+      <div class="guide-meta">시행일: ${r.effective_date || '-'}</div>
+      ${r.content ? `<div class="guide-content">${r.content.slice(0, 120)}${r.content.length > 120 ? '...' : ''}</div>` : ''}
+      ${r.file_url ? `<a href="${r.file_url}" target="_blank" class="guide-link">📎 파일 열기</a>` : ''}
+      <div class="tbm-actions" style="margin-top:10px">
+        <button class="btn-icon" onclick="editSafetyGuide(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteSafetyGuide(${r.id})">삭제</button>
+      </div>
+    </div>`).join('') : `
+    <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:12px">📚</div>
+      <p>등록된 매뉴얼·지침이 없습니다.</p>
+      <p style="font-size:.8rem;margin-top:8px">산업안전보건법, 사내 안전지침, 작업 매뉴얼 등을 등록해 담당자들이 언제든 확인할 수 있게 하세요.</p>
+    </div>`;
+}
+
+function guideForm(r = {}) {
+  const cats = ['법령', '사내지침', '매뉴얼', '기타'];
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>카테고리</label>
+        <select name="category">${cats.map(c => `<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>개정번호</label><input name="revision" placeholder="예: Rev.3" value="${r.revision||''}"></div>
+    </div>
+    <div class="form-group"><label>제목</label><input name="title" value="${r.title||''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>시행일</label><input name="effective_date" type="date" value="${r.effective_date||''}"></div>
+      <div class="form-group"><label>파일 URL (선택)</label><input name="file_url" placeholder="https://..." value="${r.file_url||''}"></div>
+    </div>
+    <div class="form-group"><label>내용 요약</label><textarea name="content" rows="5">${r.content||''}</textarea></div>`;
+}
+
+function addSafetyGuide() {
+  showModal('문서 등록', guideForm(), async (overlay) => {
+    const d = getFormData(overlay, ['category', 'revision', 'title', 'effective_date', 'file_url', 'content']);
+    await api.post('/api/v1/safety_guides', d);
+    loadSafetyGuides();
+  });
+}
+
+async function editSafetyGuide(id) {
+  const r = await api.get(`/api/v1/safety_guides/${id}`);
+  showModal('문서 수정', guideForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['category', 'revision', 'title', 'effective_date', 'file_url', 'content']);
+    await api.put(`/api/v1/safety_guides/${id}`, d);
+    loadSafetyGuides();
+  });
+}
+
+async function deleteSafetyGuide(id) {
+  if (!confirm('문서를 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_guides/${id}`);
+  loadSafetyGuides();
 }

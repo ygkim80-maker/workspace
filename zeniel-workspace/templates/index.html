@@ -22,6 +22,7 @@
       <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
       <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈·특이사항</div>
       <div class="nav-item" data-page="safety-edu" onclick="navigate('safety-edu')">🎓 안전교육 관리</div>
+      <div class="nav-item" data-page="safety-mgmt" onclick="navigate('safety-mgmt')">🔒 안전보건 관리</div>
 
       <div class="nav-section-label">인원 운영</div>
       <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장 현황</div>
@@ -411,6 +412,51 @@
             <thead><tr><th>현장</th><th>날짜</th><th>정규직</th><th>계약직</th><th>파견</th><th>합계</th><th>비고</th><th>작업</th></tr></thead>
             <tbody id="staffing-tbody"><tr><td colspan="8" class="empty-state">데이터 없음</td></tr></tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ===== 안전보건 관리 ===== -->
+      <section id="page-safety-mgmt" class="page">
+        <!-- 탭 -->
+        <div class="sm-tabs">
+          <button class="sm-tab active" data-tab="checklist" onclick="switchSmTab('checklist')">📋 점검 체크리스트</button>
+          <button class="sm-tab" data-tab="guide" onclick="switchSmTab('guide')">📚 매뉴얼·지침</button>
+        </div>
+
+        <!-- ===== 체크리스트 탭 ===== -->
+        <div id="sm-tab-checklist" class="sm-tab-body">
+          <div class="toolbar">
+            <select id="cl-type" onchange="loadSafetyMgmt()">
+              <option value="일일">일일 점검</option>
+              <option value="주간">주간 점검</option>
+              <option value="월간">월간 점검</option>
+            </select>
+            <input id="cl-site" placeholder="현장명" style="width:140px" oninput="loadSafetyMgmt()"/>
+            <input id="cl-date-from" type="date" onchange="loadSafetyMgmt()"/>
+            <input id="cl-date-to" type="date" onchange="loadSafetyMgmt()" style="width:auto"/>
+            <span class="spacer"></span>
+            <button class="btn-primary" onclick="startChecklist()">+ 점검 실시</button>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-card"><span class="kpi-label">총 점검 횟수</span><span class="kpi-value" id="cl-total">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">적합</span><span class="kpi-value" id="cl-ok" style="color:var(--emerald)">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">부적합</span><span class="kpi-value" id="cl-ng" style="color:var(--danger)">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">적합률</span><span class="kpi-value" id="cl-rate">-</span></div>
+          </div>
+          <div id="cl-list" class="sm-cl-list"></div>
+        </div>
+
+        <!-- ===== 매뉴얼·지침 탭 ===== -->
+        <div id="sm-tab-guide" class="sm-tab-body" style="display:none">
+          <div class="toolbar">
+            <select id="guide-cat-filter" onchange="loadSafetyGuides()">
+              <option value="">전체</option>
+              <option>법령</option><option>사내지침</option><option>매뉴얼</option><option>기타</option>
+            </select>
+            <span class="spacer"></span>
+            <button class="btn-primary" onclick="addSafetyGuide()">+ 문서 등록</button>
+          </div>
+          <div id="guide-grid" class="guide-grid"></div>
         </div>
       </section>
 

@@ -444,3 +444,37 @@ class StaffingOut(StaffingBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: Optional[datetime] = None
+
+
+class SafetyChecklistBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    check_type: Optional[str] = '일일'
+    responses: Optional[str] = '[]'
+    completed_by: Optional[str] = None
+    overall_ok: Optional[int] = 1
+    notes: Optional[str] = None
+
+class SafetyChecklistCreate(SafetyChecklistBase): pass
+class SafetyChecklistUpdate(SafetyChecklistBase): pass
+class SafetyChecklistOut(SafetyChecklistBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class SafetyGuideBase(BaseModel):
+    category: Optional[str] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    file_url: Optional[str] = None
+    revision: Optional[str] = None
+    effective_date: Optional[str] = None
+
+class SafetyGuideCreate(SafetyGuideBase): pass
+class SafetyGuideUpdate(SafetyGuideBase): pass
+class SafetyGuideOut(SafetyGuideBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
