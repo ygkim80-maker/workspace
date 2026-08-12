@@ -1189,18 +1189,17 @@ async function loadSafetyGuides() {
   const catColors = { '법령': 'var(--danger)', '사내지침': 'var(--amber)', '매뉴얼': 'var(--sky)', '기타': 'var(--muted)' };
 
   document.getElementById('guide-grid').innerHTML = rows.length ? rows.map(r => `
-    <div class="guide-card">
-      <div class="guide-card-top">
+    <div class="guide-row" onclick="viewSafetyGuide(${r.id})">
+      <div class="guide-row-left">
         <span class="guide-cat-badge" style="color:${catColors[r.category]||'var(--muted)'}">${r.category || '기타'}</span>
+        <span class="guide-title">${r.title || '(제목없음)'}</span>
         ${r.revision ? `<span class="guide-rev">${r.revision}</span>` : ''}
       </div>
-      <div class="guide-title">${r.title || '(제목없음)'}</div>
-      <div class="guide-meta">시행일: ${r.effective_date || '-'}</div>
-      ${r.content ? `<div class="guide-content">${r.content.slice(0, 120)}${r.content.length > 120 ? '...' : ''}</div>` : ''}
-      ${r.file_url ? `<a href="${r.file_url}" target="_blank" class="guide-link">📎 파일 열기</a>` : ''}
-      <div class="tbm-actions" style="margin-top:10px">
-        <button class="btn-icon" onclick="editSafetyGuide(${r.id})">수정</button>
-        <button class="btn-danger" onclick="deleteSafetyGuide(${r.id})">삭제</button>
+      <div class="guide-row-right">
+        <span class="guide-meta">시행일 ${r.effective_date || '-'}</span>
+        ${r.file_url ? `<a href="${r.file_url}" target="_blank" class="guide-link" onclick="event.stopPropagation()">📎 파일</a>` : ''}
+        <button class="btn-icon" onclick="event.stopPropagation();editSafetyGuide(${r.id})">수정</button>
+        <button class="btn-danger" onclick="event.stopPropagation();deleteSafetyGuide(${r.id})">삭제</button>
       </div>
     </div>`).join('') : `
     <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">
@@ -1225,6 +1224,20 @@ function guideForm(r = {}) {
       <div class="form-group"><label>파일 URL (선택)</label><input name="file_url" placeholder="https://..." value="${r.file_url||''}"></div>
     </div>
     <div class="form-group"><label>내용 요약</label><textarea name="content" rows="5">${r.content||''}</textarea></div>`;
+}
+
+async function viewSafetyGuide(id) {
+  const r = await api.get(`/api/v1/safety_guides/${id}`);
+  const catColors = { '법령': 'var(--danger)', '사내지침': 'var(--amber)', '매뉴얼': 'var(--sky)', '기타': 'var(--muted)' };
+  const html = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span class="guide-cat-badge" style="color:${catColors[r.category]||'var(--muted)'};">${r.category || '기타'}</span>
+      ${r.revision ? `<span class="guide-rev">${r.revision}</span>` : ''}
+      <span style="font-size:.78rem;color:var(--muted);margin-left:auto">시행일: ${r.effective_date || '-'}</span>
+    </div>
+    ${r.file_url ? `<div style="margin-bottom:12px"><a href="${r.file_url}" target="_blank" class="guide-link">📎 원문 파일 열기</a></div>` : ''}
+    <div class="guide-detail-content">${(r.content || '').replace(/\n/g, '<br>').replace(/□/g, '<span style="color:var(--amber)">□</span>')}</div>`;
+  showModal(r.title || '문서 상세', html, async () => {});
 }
 
 function addSafetyGuide() {
