@@ -35,6 +35,12 @@
       <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
       <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
 
+      <div class="nav-section-label">특송사업</div>
+      <div class="nav-item" data-page="sd-dashboard" onclick="navigate('sd-dashboard')">📡 특송 현황</div>
+      <div class="nav-item" data-page="sd-delivery" onclick="navigate('sd-delivery')">📦 배송 물량</div>
+      <div class="nav-item" data-page="sd-staff" onclick="navigate('sd-staff')">👥 인원 현황</div>
+      <div class="nav-item" data-page="sd-issues" onclick="navigate('sd-issues')">⚠️ 지사 특이사항</div>
+
       <div class="nav-section-label">본사 CRM</div>
       <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
       <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
@@ -458,6 +464,100 @@
           </div>
           <div id="guide-grid" class="guide-grid"></div>
         </div>
+      </section>
+
+      <!-- ===== 특송 현황 대시보드 ===== -->
+      <section id="page-sd-dashboard" class="page">
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">오늘 총 수령</span><span class="kpi-value" id="sd-received">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">배송완료</span><span class="kpi-value" id="sd-delivered" style="color:var(--emerald)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">완료율</span><span class="kpi-value" id="sd-rate" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">미처리 이슈</span><span class="kpi-value" id="sd-issues-count" style="color:var(--danger)">-</span></div>
+        </div>
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>지사별 오늘 현황</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-delivery')">전체보기</button></div>
+            <div id="sd-branch-table"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>미처리 이슈</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-issues')">전체보기</button></div>
+            <div id="sd-issues-list" class="timeline"></div>
+          </div>
+        </div>
+        <div class="dash-grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-header"><h3>오늘 인원 이탈·결원</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-staff')">전체보기</button></div>
+            <div id="sd-staff-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>반송 현황</h3></div>
+            <div id="sd-return-summary"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 배송 물량 ===== -->
+      <section id="page-sd-delivery" class="page">
+        <div class="toolbar">
+          <input id="sd-del-date" type="date" onchange="loadSdDelivery()"/>
+          <select id="sd-del-branch" onchange="loadSdDelivery()"><option value="">전체 지사</option></select>
+          <select id="sd-del-company" onchange="loadSdDelivery()">
+            <option value="">전체 카드사</option>
+            <option>국민카드</option><option>신한카드</option><option>삼성카드</option>
+            <option>현대카드</option><option>롯데카드</option><option>하나카드</option><option>기타</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdDelivery()">+ 물량 등록</button>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 수령</span><span class="kpi-value" id="sd-del-received">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">배송완료</span><span class="kpi-value" id="sd-del-delivered" style="color:var(--emerald)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">미배송</span><span class="kpi-value" id="sd-del-pending" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">반송</span><span class="kpi-value" id="sd-del-returned" style="color:var(--danger)">-</span></div>
+        </div>
+        <div class="panel">
+          <table class="data-table" id="sd-del-table">
+            <thead><tr><th>날짜</th><th>지사</th><th>카드사</th><th>수령</th><th>완료</th><th>미배송</th><th>반송</th><th>완료율</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="sd-del-tbody"><tr><td colspan="10" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 인원 현황 ===== -->
+      <section id="page-sd-staff" class="page">
+        <div class="toolbar">
+          <input id="sd-staff-date" type="date" onchange="loadSdStaff()"/>
+          <select id="sd-staff-branch" onchange="loadSdStaff()"><option value="">전체 지사</option></select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdStaff()">+ 인원 현황 등록</button>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 인원</span><span class="kpi-value" id="sd-staff-total">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">결원</span><span class="kpi-value" id="sd-staff-shortage" style="color:var(--danger)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">퇴사</span><span class="kpi-value" id="sd-staff-resigned" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">신규입사</span><span class="kpi-value" id="sd-staff-new" style="color:var(--emerald)">-</span></div>
+        </div>
+        <div class="panel">
+          <table class="data-table">
+            <thead><tr><th>날짜</th><th>지사</th><th>총인원</th><th>결근</th><th>퇴사</th><th>신규</th><th>결원</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="sd-staff-tbody"><tr><td colspan="9" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 지사 특이사항 ===== -->
+      <section id="page-sd-issues" class="page">
+        <div class="toolbar">
+          <input id="sd-issue-date-from" type="date" onchange="loadSdIssues()"/>
+          <input id="sd-issue-date-to" type="date" onchange="loadSdIssues()" style="width:auto"/>
+          <select id="sd-issue-branch" onchange="loadSdIssues()"><option value="">전체 지사</option></select>
+          <select id="sd-issue-status" onchange="loadSdIssues()">
+            <option value="">전체 상태</option><option>미처리</option><option>처리중</option><option>완료</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdIssue()">+ 이슈 등록</button>
+        </div>
+        <div id="sd-issue-list" class="sd-issue-list"></div>
       </section>
 
       <!-- ===== 팀 피드 ===== -->

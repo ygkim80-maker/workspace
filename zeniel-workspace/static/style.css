@@ -404,3 +404,40 @@ body {
 .guide-link { font-size: .76rem; color: var(--sky); text-decoration: none; }
 .guide-link:hover { text-decoration: underline; }
 .guide-detail-content { font-size: .84rem; color: var(--text); line-height: 1.9; white-space: pre-wrap; background: var(--card2); border-radius: 8px; padding: 14px 16px; max-height: 480px; overflow-y: auto; }
+
+/* 특송사업 */
+.sd-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.sd-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+.sd-kpi-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.sd-kpi-val { font-size: 1.6rem; font-weight: 800; color: var(--sky); }
+.sd-section-title { font-size: .82rem; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: .8px; margin: 20px 0 10px; }
+.sd-branch-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.sd-branch-table th { background: var(--card2); color: var(--muted); font-size: .72rem; text-transform: uppercase; padding: 8px 12px; text-align: left; }
+.sd-branch-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.sd-branch-table tr:last-child td { border-bottom: none; }
+.sd-staff-summary { display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 0; }
+.sd-badge { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+.sd-badge-ok { background: rgba(52,211,153,.15); color: var(--emerald); }
+.sd-badge-warn { background: rgba(245,158,11,.15); color: var(--amber); }
+.sd-badge-danger { background: rgba(248,113,113,.15); color: var(--danger); }
+.sd-issue-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+.sd-issue-row:last-child { border-bottom: none; }
+.sd-issue-branch { color: var(--sky); font-weight: 600; }
+.sd-issue-title { flex: 1; color: var(--text); }
+.sd-issue-status { font-size: .72rem; color: var(--muted); background: var(--card2); padding: 2px 8px; border-radius: 10px; }
+.sd-sev-badge { display: inline-block; font-size: .68rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; }
+.sd-sev-high { background: rgba(248,113,113,.18); color: var(--danger); }
+.sd-sev-mid { background: rgba(245,158,11,.18); color: var(--amber); }
+.sd-sev-low { background: rgba(52,211,153,.12); color: var(--emerald); }
+.sd-issue-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.sd-issue-card-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.sd-issue-branch-tag { font-size: .78rem; font-weight: 700; color: var(--sky); }
+.sd-cat-badge { font-size: .68rem; background: var(--card2); color: var(--muted); padding: 2px 8px; border-radius: 10px; }
+.sd-sta-badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.sd-sta-open { background: rgba(248,113,113,.15); color: var(--danger); }
+.sd-sta-proc { background: rgba(245,158,11,.15); color: var(--amber); }
+.sd-sta-done { background: rgba(52,211,153,.12); color: var(--emerald); }
+.sd-issue-date { font-size: .72rem; color: var(--muted); }
+.sd-issue-card-title { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.sd-issue-card-content { font-size: .82rem; color: var(--muted); line-height: 1.7; white-space: pre-wrap; }
+.text-danger { color: var(--danger); font-weight: 700; }

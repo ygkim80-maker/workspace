@@ -478,3 +478,56 @@ class SafetyGuideOut(SafetyGuideBase):
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+class CardDeliveryBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    card_company: Optional[str] = None
+    received: Optional[int] = 0
+    delivered: Optional[int] = 0
+    pending: Optional[int] = 0
+    returned: Optional[int] = 0
+    notes: Optional[str] = None
+
+class CardDeliveryCreate(CardDeliveryBase): pass
+class CardDeliveryUpdate(CardDeliveryBase): pass
+class CardDeliveryOut(CardDeliveryBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class BranchStaffBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    total: Optional[int] = 0
+    absent: Optional[int] = 0
+    resigned: Optional[int] = 0
+    new_hire: Optional[int] = 0
+    shortage: Optional[int] = 0
+    notes: Optional[str] = None
+
+class BranchStaffCreate(BranchStaffBase): pass
+class BranchStaffUpdate(BranchStaffBase): pass
+class BranchStaffOut(BranchStaffBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class BranchIssueBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    category: Optional[str] = '기타'
+    severity: Optional[str] = '중'
+    title: Optional[str] = None
+    content: Optional[str] = None
+    status: Optional[str] = '미처리'
+
+class BranchIssueCreate(BranchIssueBase): pass
+class BranchIssueUpdate(BranchIssueBase): pass
+class BranchIssueOut(BranchIssueBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None

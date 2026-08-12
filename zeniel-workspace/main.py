@@ -13,7 +13,8 @@ from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, F
                      TBM, Task, User, WeeklyReport, WeeklyReportItem, WorkLog)
 from routers import (contracts, customers, documents, emails, feed, hourly, insights, issues,
                       leads, meetings, pipeline, projects, schedules, sites, tasks, tbm,
-                      weekly_reports, worklogs, safety_edu, staffing, safety_mgmt)
+                      weekly_reports, worklogs, safety_edu, staffing, safety_mgmt,
+                      special_delivery)
 
 Base.metadata.create_all(bind=engine)
 
@@ -28,7 +29,10 @@ for r in (leads.router, customers.router, pipeline.router, projects.router, cont
           schedules.router, insights.router, worklogs.router, documents.router, feed.router,
           weekly_reports.router, hourly.router, tbm.router,
           safety_edu.router, staffing.router,
-          safety_mgmt.checklist_router, safety_mgmt.guide_router):
+          safety_mgmt.checklist_router, safety_mgmt.guide_router,
+          special_delivery.card_delivery_router,
+          special_delivery.branch_staff_router,
+          special_delivery.branch_issue_router):
     app.include_router(r)
 
 

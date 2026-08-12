@@ -16,6 +16,7 @@ function navigate(page) {
     hourly: '시간대별 물량', tbm: 'TBM 기록',
     'safety-edu': '교육 관리', staffing: '인원 배치',
     'safety-mgmt': '안전보건 관리',
+    'sd-dashboard': '특송 현황', 'sd-delivery': '배송 물량', 'sd-staff': '인원 현황', 'sd-issues': '지사 특이사항',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -28,6 +29,8 @@ function navigate(page) {
     hourly: loadHourly, tbm: loadTBM,
     'safety-edu': loadSafetyEdu, staffing: loadStaffing,
     'safety-mgmt': loadSafetyMgmt,
+    'sd-dashboard': loadSdDashboard, 'sd-delivery': loadSdDelivery,
+    'sd-staff': loadSdStaff, 'sd-issues': loadSdIssues,
   };
   if (loaders[page]) loaders[page]();
 }
@@ -1261,4 +1264,352 @@ async function deleteSafetyGuide(id) {
   if (!confirm('문서를 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/safety_guides/${id}`);
   loadSafetyGuides();
+}
+
+// ===== 특송사업 =====
+
+async function loadSdDashboard() {
+  const today = new Date().toISOString().slice(0, 10);
+  const [deliveries, staff, issues] = await Promise.all([
+    api.get('/api/v1/card_deliveries'),
+    api.get('/api/v1/branch_staff'),
+    api.get('/api/v1/branch_issues'),
+  ]);
+
+  const todayDel = deliveries.filter(r => r.date === today);
+  const todayStaff = staff.filter(r => r.date === today);
+  const openIssues = issues.filter(r => r.status !== '처리완료');
+
+  // KPI cards
+  const totalRec = todayDel.reduce((s, r) => s + (r.received || 0), 0);
+  const totalDel = todayDel.reduce((s, r) => s + (r.delivered || 0), 0);
+  const totalPend = todayDel.reduce((s, r) => s + (r.pending || 0), 0);
+  const totalRet = todayDel.reduce((s, r) => s + (r.returned || 0), 0);
+  const delRate = totalRec ? (totalDel / totalRec * 100).toFixed(1) : '-';
+  document.getElementById('sd-received').textContent = totalRec.toLocaleString();
+  document.getElementById('sd-delivered').textContent = totalDel.toLocaleString();
+  document.getElementById('sd-issues-count').textContent = openIssues.length;
+  document.getElementById('sd-rate').textContent = totalRec ? delRate + '%' : '-';
+
+  // 지사별 배송 현황 테이블
+  const branchMap = {};
+  todayDel.forEach(r => {
+    if (!branchMap[r.branch]) branchMap[r.branch] = { received: 0, delivered: 0, pending: 0, returned: 0 };
+    branchMap[r.branch].received += r.received || 0;
+    branchMap[r.branch].delivered += r.delivered || 0;
+    branchMap[r.branch].pending += r.pending || 0;
+    branchMap[r.branch].returned += r.returned || 0;
+  });
+  const branchList = Object.keys(branchMap).sort();
+  const branchTableHtml = branchList.length
+    ? `<table class="sd-branch-table"><thead><tr><th>지사</th><th>수령</th><th>완료</th><th>미배송</th><th>반송</th><th>완료율</th></tr></thead><tbody>${
+        branchList.map(b => {
+          const d = branchMap[b];
+          const rate = d.received ? (d.delivered / d.received * 100).toFixed(1) + '%' : '-';
+          return `<tr><td>${b}</td><td>${d.received.toLocaleString()}</td><td>${d.delivered.toLocaleString()}</td><td>${d.pending.toLocaleString()}</td><td>${d.returned.toLocaleString()}</td><td>${rate}</td></tr>`;
+        }).join('')
+      }</tbody></table>`
+    : '<div style="color:var(--muted);padding:12px">오늘 배송 데이터 없음</div>';
+  document.getElementById('sd-branch-table').innerHTML = branchTableHtml;
+
+  // 인원 현황 요약
+  const totalShort = todayStaff.reduce((s, r) => s + (r.shortage || 0), 0);
+  const totalResign = todayStaff.reduce((s, r) => s + (r.resigned || 0), 0);
+  const totalNew = todayStaff.reduce((s, r) => s + (r.new_hire || 0), 0);
+  document.getElementById('sd-staff-summary').innerHTML = `<div class="sd-staff-summary">
+    <span class="sd-badge sd-badge-warn">인력부족 ${totalShort}명</span>
+    <span class="sd-badge sd-badge-danger">이탈 ${totalResign}명</span>
+    <span class="sd-badge sd-badge-ok">신규 ${totalNew}명</span></div>`;
+
+  // 미처리 이슈
+  document.getElementById('sd-issues-list').innerHTML = openIssues.length
+    ? openIssues.slice(0, 8).map(r => {
+        const sev = r.severity === '상' ? 'sd-sev-high' : r.severity === '중' ? 'sd-sev-mid' : 'sd-sev-low';
+        return `<div class="sd-issue-row">
+          <span class="sd-sev-badge ${sev}">${r.severity}</span>
+          <span class="sd-issue-branch">[${r.branch || '-'}]</span>
+          <span class="sd-issue-title">${r.title || '-'}</span>
+          <span class="sd-issue-status">${r.status}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);padding:12px 0">미처리 이슈 없음</div>';
+}
+
+// 배송 물량 (일자별 지사별 카드배송 데이터)
+async function loadSdDelivery() {
+  const dateEl = document.getElementById('sd-del-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const all = await api.get('/api/v1/card_deliveries');
+
+  const branches = [...new Set(all.map(r => r.branch).filter(Boolean))].sort();
+  const branchEl = document.getElementById('sd-del-branch');
+  const curBranch = branchEl.value;
+  branchEl.innerHTML = '<option value="">전체 지사</option>' +
+    branches.map(b => `<option ${curBranch === b ? 'selected' : ''}>${b}</option>`).join('');
+  branchEl.value = curBranch;
+
+  const dateVal = dateEl.value;
+  const branchVal = branchEl.value;
+  const filtered = all.filter(r => {
+    if (dateVal && r.date !== dateVal) return false;
+    if (branchVal && r.branch !== branchVal) return false;
+    return true;
+  });
+
+  // KPI 합계
+  const sumRec = filtered.reduce((s, r) => s + (r.received || 0), 0);
+  const sumDel = filtered.reduce((s, r) => s + (r.delivered || 0), 0);
+  const sumPend = filtered.reduce((s, r) => s + (r.pending || 0), 0);
+  const sumRet = filtered.reduce((s, r) => s + (r.returned || 0), 0);
+  document.getElementById('sd-del-received').textContent = sumRec.toLocaleString();
+  document.getElementById('sd-del-delivered').textContent = sumDel.toLocaleString();
+  document.getElementById('sd-del-pending').textContent = sumPend.toLocaleString();
+  document.getElementById('sd-del-returned').textContent = sumRet.toLocaleString();
+
+  document.getElementById('sd-del-tbody').innerHTML = filtered.length
+    ? filtered.map(r => {
+        const rate = r.received ? (r.delivered / r.received * 100).toFixed(1) + '%' : '-';
+        return `<tr>
+          <td>${r.date || '-'}</td>
+          <td>${r.branch || '-'}</td>
+          <td>${r.card_company || '-'}</td>
+          <td>${(r.received||0).toLocaleString()}</td>
+          <td>${(r.delivered||0).toLocaleString()}</td>
+          <td>${(r.pending||0).toLocaleString()}</td>
+          <td>${(r.returned||0).toLocaleString()}</td>
+          <td>${rate}</td>
+          <td>${r.notes || '-'}</td>
+          <td>
+            <button class="btn-sm" onclick="event.stopPropagation();editSdDelivery(${r.id})">수정</button>
+            <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdDelivery(${r.id})">삭제</button>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="10" style="text-align:center;color:var(--muted)">데이터 없음</td></tr>';
+}
+
+function sdDeliveryForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>카드사</label><input name="card_company" value="${r.card_company || ''}">
+    </div>
+    <div class="form-row">
+      <label>입고</label><input name="received" type="number" value="${r.received || 0}">
+    </div>
+    <div class="form-row">
+      <label>배송완료</label><input name="delivered" type="number" value="${r.delivered || 0}">
+    </div>
+    <div class="form-row">
+      <label>미배송</label><input name="pending" type="number" value="${r.pending || 0}">
+    </div>
+    <div class="form-row">
+      <label>반송</label><input name="returned" type="number" value="${r.returned || 0}">
+    </div>
+    <div class="form-row">
+      <label>비고</label><textarea name="notes">${r.notes || ''}</textarea>
+    </div>`;
+}
+
+function addSdDelivery() {
+  showModal('배송 물량 등록', sdDeliveryForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'card_company', 'received', 'delivered', 'pending', 'returned', 'notes']);
+    await api.post('/api/v1/card_deliveries', d);
+    loadSdDelivery();
+  });
+}
+
+async function editSdDelivery(id) {
+  const r = await api.get(`/api/v1/card_deliveries/${id}`);
+  showModal('배송 물량 수정', sdDeliveryForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'card_company', 'received', 'delivered', 'pending', 'returned', 'notes']);
+    await api.put(`/api/v1/card_deliveries/${id}`, d);
+    loadSdDelivery();
+  });
+}
+
+async function deleteSdDelivery(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/card_deliveries/${id}`);
+  loadSdDelivery();
+}
+
+// 인원 현황
+async function loadSdStaff() {
+  const dateEl = document.getElementById('sd-staff-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const all = await api.get('/api/v1/branch_staff');
+
+  const dateVal = dateEl.value;
+  const filtered = all.filter(r => !dateVal || r.date === dateVal);
+
+  // KPI
+  const kTotal = filtered.reduce((s, r) => s + (r.total || 0), 0);
+  const kShort = filtered.reduce((s, r) => s + (r.shortage || 0), 0);
+  const kResign = filtered.reduce((s, r) => s + (r.resigned || 0), 0);
+  const kNew = filtered.reduce((s, r) => s + (r.new_hire || 0), 0);
+  document.getElementById('sd-staff-total').textContent = kTotal.toLocaleString();
+  document.getElementById('sd-staff-shortage').textContent = kShort;
+  document.getElementById('sd-staff-resigned').textContent = kResign;
+  document.getElementById('sd-staff-new').textContent = kNew;
+
+  document.getElementById('sd-staff-tbody').innerHTML = filtered.length
+    ? filtered.map(r => `<tr>
+        <td>${r.date || '-'}</td>
+        <td>${r.branch || '-'}</td>
+        <td>${r.total || 0}</td>
+        <td>${r.absent || 0}</td>
+        <td>${r.resigned || 0}</td>
+        <td>${r.new_hire || 0}</td>
+        <td class="${(r.shortage||0) > 0 ? 'text-danger' : ''}">${r.shortage || 0}</td>
+        <td>${r.notes || '-'}</td>
+        <td>
+          <button class="btn-sm" onclick="event.stopPropagation();editSdStaff(${r.id})">수정</button>
+          <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdStaff(${r.id})">삭제</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--muted)">데이터 없음</td></tr>';
+}
+
+function sdStaffForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>총원</label><input name="total" type="number" value="${r.total || 0}">
+    </div>
+    <div class="form-row">
+      <label>결근</label><input name="absent" type="number" value="${r.absent || 0}">
+    </div>
+    <div class="form-row">
+      <label>이탈</label><input name="resigned" type="number" value="${r.resigned || 0}">
+    </div>
+    <div class="form-row">
+      <label>신규입사</label><input name="new_hire" type="number" value="${r.new_hire || 0}">
+    </div>
+    <div class="form-row">
+      <label>부족인원</label><input name="shortage" type="number" value="${r.shortage || 0}">
+    </div>
+    <div class="form-row">
+      <label>비고</label><textarea name="notes">${r.notes || ''}</textarea>
+    </div>`;
+}
+
+function addSdStaff() {
+  showModal('인원 현황 등록', sdStaffForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'total', 'absent', 'resigned', 'new_hire', 'shortage', 'notes']);
+    await api.post('/api/v1/branch_staff', d);
+    loadSdStaff();
+  });
+}
+
+async function editSdStaff(id) {
+  const r = await api.get(`/api/v1/branch_staff/${id}`);
+  showModal('인원 현황 수정', sdStaffForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'total', 'absent', 'resigned', 'new_hire', 'shortage', 'notes']);
+    await api.put(`/api/v1/branch_staff/${id}`, d);
+    loadSdStaff();
+  });
+}
+
+async function deleteSdStaff(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/branch_staff/${id}`);
+  loadSdStaff();
+}
+
+// 지사 특이사항
+async function loadSdIssues() {
+  const statusEl = document.getElementById('sd-issue-status');
+  const all = await api.get('/api/v1/branch_issues');
+  const statusVal = statusEl ? statusEl.value : '';
+  const filtered = all.filter(r => !statusVal || r.status === statusVal);
+
+  document.getElementById('sd-issue-list').innerHTML = filtered.length
+    ? filtered.map(r => {
+        const sev = r.severity === '상' ? 'sd-sev-high' : r.severity === '중' ? 'sd-sev-mid' : 'sd-sev-low';
+        const sta = r.status === '처리완료' ? 'sd-sta-done' : r.status === '처리중' ? 'sd-sta-proc' : 'sd-sta-open';
+        return `<div class="sd-issue-card">
+          <div class="sd-issue-card-header">
+            <span class="sd-sev-badge ${sev}">${r.severity || '-'}</span>
+            <span class="sd-issue-branch-tag">${r.branch || '-'}</span>
+            <span class="sd-cat-badge">${r.category || '-'}</span>
+            <span class="sd-sta-badge ${sta}">${r.status || '-'}</span>
+            <span class="sd-issue-date">${r.date || '-'}</span>
+            <span class="sd-issue-actions" style="margin-left:auto">
+              <button class="btn-sm" onclick="event.stopPropagation();editSdIssue(${r.id})">수정</button>
+              <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdIssue(${r.id})">삭제</button>
+            </span>
+          </div>
+          <div class="sd-issue-card-title">${r.title || '-'}</div>
+          ${r.content ? `<div class="sd-issue-card-content">${r.content}</div>` : ''}
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);padding:24px;text-align:center">등록된 이슈 없음</div>';
+}
+
+function sdIssueForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const cats = ['배송지연', '인력부족', '차량고장', '고객민원', '시설문제', '기타'];
+  const sevs = ['상', '중', '하'];
+  const stats = ['미처리', '처리중', '처리완료'];
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>유형</label>
+      <select name="category">${cats.map(c => `<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <label>중요도</label>
+      <select name="severity">${sevs.map(s => `<option ${r.severity===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <label>제목</label><input name="title" value="${r.title || ''}">
+    </div>
+    <div class="form-row">
+      <label>내용</label><textarea name="content">${r.content || ''}</textarea>
+    </div>
+    <div class="form-row">
+      <label>상태</label>
+      <select name="status">${stats.map(s => `<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>`;
+}
+
+function addSdIssue() {
+  showModal('특이사항 등록', sdIssueForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'category', 'severity', 'title', 'content', 'status']);
+    await api.post('/api/v1/branch_issues', d);
+    loadSdIssues();
+  });
+}
+
+async function editSdIssue(id) {
+  const r = await api.get(`/api/v1/branch_issues/${id}`);
+  showModal('특이사항 수정', sdIssueForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'category', 'severity', 'title', 'content', 'status']);
+    await api.put(`/api/v1/branch_issues/${id}`, d);
+    loadSdIssues();
+  });
+}
+
+async function deleteSdIssue(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/branch_issues/${id}`);
+  loadSdIssues();
 }
