@@ -14,7 +14,7 @@ function navigate(page) {
     insights: '메모·인사이트', settings: '설정',
     worklog: '일일 작업관리', kpi: 'KPI 현황', documents: '문서함', feed: '팀 피드',
     hourly: '시간대별 물량', tbm: 'TBM 기록',
-    'safety-edu': '안전교육 관리', staffing: '인원 배치',
+    'safety-edu': '교육 관리', staffing: '인원 배치',
     'safety-mgmt': '안전보건 관리',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
