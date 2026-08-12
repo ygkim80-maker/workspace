@@ -14,6 +14,9 @@ function navigate(page) {
     insights: '메모·인사이트', settings: '설정',
     worklog: '일일 작업관리', kpi: 'KPI 현황', documents: '문서함', feed: '팀 피드',
     hourly: '시간대별 물량', tbm: 'TBM 기록',
+    'safety-edu': '교육 관리', staffing: '인원 배치',
+    'safety-mgmt': '안전보건 관리',
+    'sd-dashboard': '특송 현황', 'sd-delivery': '배송 물량', 'sd-staff': '인원 현황', 'sd-issues': '지사 특이사항',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -24,6 +27,10 @@ function navigate(page) {
     insights: loadInsights, settings: loadSettings,
     worklog: loadWorklog, kpi: loadKpi, documents: loadDocuments, feed: loadFeed,
     hourly: loadHourly, tbm: loadTBM,
+    'safety-edu': loadSafetyEdu, staffing: loadStaffing,
+    'safety-mgmt': loadSafetyMgmt,
+    'sd-dashboard': loadSdDashboard, 'sd-delivery': loadSdDelivery,
+    'sd-staff': loadSdStaff, 'sd-issues': loadSdIssues,
   };
   if (loaders[page]) loaders[page]();
 }
@@ -566,40 +573,75 @@ async function loadTBM() {
   document.getElementById('tbm-safe-days').textContent = safeDays;
   document.getElementById('tbm-complete-rate').textContent = completeRate + '%';
 
-  // cards grid
-  document.getElementById('tbm-grid').innerHTML = filtered.sort((a, b) => b.date > a.date ? 1 : -1).map(r => {
-    const attendees = (() => {
-      try { return JSON.parse(r.attendees || '[]'); } catch { return []; }
+  // 날짜별 그룹핑 accordion
+  const sorted = filtered.sort((a, b) => b.date > a.date ? 1 : -1);
+  const groups = {};
+  sorted.forEach(r => {
+    const key = r.date || '날짜 미상';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('tbm-grid').innerHTML = Object.keys(groups).length ? Object.entries(groups).map(([date, records], gi) => {
+    const isToday = date === todayStr;
+    const isOpen = gi === 0; // 가장 최신 날짜만 기본 펼침
+    const groupId = `tbm-group-${gi}`;
+    const completedCount = records.filter(r => r.status === '완료').length;
+    const totalAttend = records.reduce((s, r) => s + (r.attendee_count || 0), 0);
+    const dateLabel = (() => {
+      const d = new Date(date + 'T00:00:00');
+      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     })();
-    const statusClass = r.status === '완료' ? 'badge-safety' : 'badge-warning';
-    return `<div class="tbm-card">
-      <div class="tbm-card-header">
-        <div>
-          <div class="tbm-card-title">${r.site || '-'} · ${r.team || '-'}</div>
-          <div class="tbm-card-meta">${r.date || ''} | 리더: ${r.leader || '-'}</div>
+
+    const cards = records.map(r => {
+      const attendees = (() => { try { return JSON.parse(r.attendees || '[]'); } catch { return []; } })();
+      const statusClass = r.status === '완료' ? 'badge-safety' : 'badge-warning';
+      return `<div class="tbm-card">
+        <div class="tbm-card-header">
+          <div>
+            <div class="tbm-card-title">${r.site || '-'} · ${r.team || '-'}</div>
+            <div class="tbm-card-meta">리더: ${r.leader || '-'}</div>
+          </div>
+          <span class="badge ${statusClass}">${r.status || '완료'}</span>
         </div>
-        <span class="badge ${statusClass}">${r.status || '완료'}</span>
-      </div>
-      <div class="tbm-detail-row">
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">안전주제</span>
-          <span class="tbm-detail-value">${r.safety_topic || '-'}</span>
+        <div class="tbm-detail-row">
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">안전주제</span>
+            <span class="tbm-detail-value">${r.safety_topic || '-'}</span>
+          </div>
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">작업계획</span>
+            <span class="tbm-detail-value">${r.work_plan || '-'}</span>
+          </div>
+          <div class="tbm-detail-item">
+            <span class="tbm-detail-label">참석인원</span>
+            <span class="tbm-detail-value">${r.attendee_count || 0}명${attendees.length ? ' · ' + attendees.slice(0, 3).join(', ') + (attendees.length > 3 ? ' 외' : '') : ''}</span>
+          </div>
         </div>
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">작업계획</span>
-          <span class="tbm-detail-value">${r.work_plan || '-'}</span>
+        <div class="tbm-actions">
+          <button class="btn-icon" onclick="editTBM(${r.id})">수정</button>
+          <button class="btn-danger" onclick="deleteTBM(${r.id})">삭제</button>
         </div>
-        <div class="tbm-detail-item">
-          <span class="tbm-detail-label">참석인원</span>
-          <span class="tbm-detail-value">${r.attendee_count || 0}명${attendees.length ? ' · ' + attendees.slice(0, 3).join(', ') + (attendees.length > 3 ? ' 외' : '') : ''}</span>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="tbm-accordion">
+        <div class="tbm-acc-header ${isOpen ? 'open' : ''}" onclick="toggleTbmGroup('${groupId}')">
+          <div class="tbm-acc-date">
+            ${isToday ? '<span class="tbm-today-badge">오늘</span>' : ''}
+            <span class="tbm-acc-datetext">${dateLabel}</span>
+            <span class="tbm-acc-sub">${records.length}건 · 참석 ${totalAttend}명 · 완료 ${completedCount}/${records.length}</span>
+          </div>
+          <span class="tbm-acc-chevron">${isOpen ? '▲' : '▼'}</span>
         </div>
-      </div>
-      <div class="tbm-actions">
-        <button class="btn-icon" onclick="editTBM(${r.id})">수정</button>
-        <button class="btn-danger" onclick="deleteTBM(${r.id})">삭제</button>
-      </div>
-    </div>`;
-  }).join('') || '<p style="color:var(--muted);padding:20px">TBM 기록이 없습니다.</p>';
+        <div class="tbm-acc-body ${isOpen ? 'open' : ''}" id="${groupId}">
+          <div class="tbm-grid">${cards}</div>
+        </div>
+      </div>`;
+  }).join('') : '<p style="color:var(--muted);padding:20px">TBM 기록이 없습니다.</p>';
 }
 
 function tbmForm(r = {}) {
@@ -658,4 +700,916 @@ async function deleteTBM(id) {
   if (!confirm('TBM 기록을 삭제하시겠습니까?')) return;
   await api.del(`/api/v1/tbm/${id}`);
   loadTBM();
+}
+
+function toggleTbmGroup(groupId) {
+  const body = document.getElementById(groupId);
+  const header = body?.previousElementSibling;
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (header) header.classList.toggle('open', !isOpen);
+  if (header) header.querySelector('.tbm-acc-chevron').textContent = isOpen ? '▼' : '▲';
+}
+
+// ===== 안전교육 관리 (Safety Education) =====
+async function loadSafetyEdu() {
+  const siteEl = document.getElementById('edu-site-filter');
+  const fromEl = document.getElementById('edu-date-from');
+  const toEl   = document.getElementById('edu-date-to');
+  let url = '/api/v1/safety_edu?';
+  if (siteEl?.value) url += `site=${encodeURIComponent(siteEl.value)}&`;
+  if (fromEl?.value) url += `date_from=${fromEl.value}&`;
+  if (toEl?.value)   url += `date_to=${toEl.value}&`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  // Populate site filter options
+  if (siteEl && siteEl.options.length <= 1) {
+    const sites = [...new Set(rows.map(r => r.site).filter(Boolean))];
+    sites.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; siteEl.appendChild(o); });
+  }
+
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const thisMonthRows = rows.filter(r => r.date?.startsWith(thisMonth));
+  const totalParticipants = rows.reduce((s, r) => s + (r.participant_count || 0), 0);
+  const completedRows = rows.filter(r => r.completed);
+  const rate = rows.length ? Math.round(completedRows.length / rows.length * 100) : 0;
+
+  document.getElementById('edu-count').textContent = rows.length;
+  document.getElementById('edu-participants').textContent = totalParticipants.toLocaleString();
+  document.getElementById('edu-this-month').textContent = thisMonthRows.length;
+  document.getElementById('edu-completion').textContent = rate + '%';
+
+  document.getElementById('edu-grid').innerHTML = rows.length ? rows.map(r => `
+    <div class="tbm-card">
+      <div class="tbm-card-header">
+        <span class="badge-safety">${r.site || '-'}</span>
+        <span style="font-size:.75rem;color:var(--muted)">${r.date || ''}</span>
+      </div>
+      <div class="tbm-card-title">${r.title || '안전교육'}</div>
+      <div style="margin:.5rem 0;font-size:.82rem;color:var(--muted)">${r.instructor ? '강사: ' + r.instructor : ''}</div>
+      <div class="tbm-card-footer">
+        <span>참석 ${r.participant_count || 0}명</span>
+        <span class="${r.completed ? 'badge-safety' : 'badge-warning'}">${r.completed ? '완료' : '진행중'}</span>
+        <button class="btn-icon" onclick="editSafetyEdu(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteSafetyEdu(${r.id})">삭제</button>
+      </div>
+    </div>`).join('') : '<p style="color:var(--muted);padding:20px">등록된 교육 기록이 없습니다.</p>';
+}
+
+function safetyEduForm(r = {}) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>교육일</label><input name="date" type="date" value="${r.date || new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value="${r.site || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>교육 제목</label><input name="title" value="${r.title || ''}"></div>
+      <div class="form-group"><label>강사</label><input name="instructor" value="${r.instructor || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>참석인원</label><input name="participant_count" type="number" value="${r.participant_count || 0}"></div>
+      <div class="form-group"><label>완료 여부</label>
+        <select name="completed">
+          <option value="false" ${!r.completed ? 'selected':''}>진행중</option>
+          <option value="true" ${r.completed ? 'selected':''}>완료</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>내용 / 비고</label><textarea name="notes" rows="3">${r.notes || ''}</textarea></div>`;
+}
+
+function addSafetyEdu() {
+  showModal('안전교육 등록', safetyEduForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'title', 'instructor', 'participant_count', 'completed', 'notes']);
+    d.participant_count = parseInt(d.participant_count) || 0;
+    d.completed = d.completed === 'true';
+    await api.post('/api/v1/safety_edu', d);
+    loadSafetyEdu();
+  });
+}
+
+async function editSafetyEdu(id) {
+  const r = await api.get(`/api/v1/safety_edu/${id}`);
+  showModal('안전교육 수정', safetyEduForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'title', 'instructor', 'participant_count', 'completed', 'notes']);
+    d.participant_count = parseInt(d.participant_count) || 0;
+    d.completed = d.completed === 'true';
+    await api.put(`/api/v1/safety_edu/${id}`, d);
+    loadSafetyEdu();
+  });
+}
+
+async function deleteSafetyEdu(id) {
+  if (!confirm('교육 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_edu/${id}`);
+  loadSafetyEdu();
+}
+
+// ===== 인원 배치 (Staffing) =====
+async function loadStaffing() {
+  const dateEl = document.getElementById('staffing-date');
+  const siteEl = document.getElementById('staffing-site-filter');
+  let url = '/api/v1/staffing?';
+  if (dateEl?.value) url += `date=${dateEl.value}&`;
+  if (siteEl?.value) url += `site=${encodeURIComponent(siteEl.value)}&`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  if (siteEl && siteEl.options.length <= 1) {
+    const sites = [...new Set(rows.map(r => r.site).filter(Boolean))];
+    sites.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s; siteEl.appendChild(o); });
+  }
+
+  const totalAll  = rows.reduce((s, r) => s + (r.regular||0) + (r.contract||0) + (r.dispatch||0), 0);
+  const totalReg  = rows.reduce((s, r) => s + (r.regular||0), 0);
+  const totalCon  = rows.reduce((s, r) => s + (r.contract||0) + (r.dispatch||0), 0);
+  const siteCount = new Set(rows.map(r => r.site).filter(Boolean)).size;
+
+  document.getElementById('staffing-total').textContent = totalAll.toLocaleString();
+  document.getElementById('staffing-regular').textContent = totalReg.toLocaleString();
+  document.getElementById('staffing-contract').textContent = totalCon.toLocaleString();
+  document.getElementById('staffing-sites').textContent = siteCount;
+
+  document.getElementById('staffing-tbody').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${r.site || '-'}</td>
+      <td>${r.date || '-'}</td>
+      <td>${r.regular || 0}</td>
+      <td>${r.contract || 0}</td>
+      <td>${r.dispatch || 0}</td>
+      <td><strong>${(r.regular||0)+(r.contract||0)+(r.dispatch||0)}</strong></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '-'}</td>
+      <td>
+        <button class="btn-icon" onclick="editStaffing(${r.id})">수정</button>
+        <button class="btn-danger" onclick="deleteStaffing(${r.id})">삭제</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty-state">데이터 없음</td></tr>';
+}
+
+function staffingForm(r = {}) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${r.date || new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value="${r.site || ''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>정규직</label><input name="regular" type="number" value="${r.regular || 0}"></div>
+      <div class="form-group"><label>계약직</label><input name="contract" type="number" value="${r.contract || 0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>파견</label><input name="dispatch" type="number" value="${r.dispatch || 0}"></div>
+      <div class="form-group"><label>비고</label><input name="notes" value="${r.notes || ''}"></div>
+    </div>`;
+}
+
+function addStaffing() {
+  showModal('인원 배치 등록', staffingForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'regular', 'contract', 'dispatch', 'notes']);
+    d.regular = parseInt(d.regular) || 0;
+    d.contract = parseInt(d.contract) || 0;
+    d.dispatch = parseInt(d.dispatch) || 0;
+    await api.post('/api/v1/staffing', d);
+    loadStaffing();
+  });
+}
+
+async function editStaffing(id) {
+  const r = await api.get(`/api/v1/staffing/${id}`);
+  showModal('인원 배치 수정', staffingForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'site', 'regular', 'contract', 'dispatch', 'notes']);
+    d.regular = parseInt(d.regular) || 0;
+    d.contract = parseInt(d.contract) || 0;
+    d.dispatch = parseInt(d.dispatch) || 0;
+    await api.put(`/api/v1/staffing/${id}`, d);
+    loadStaffing();
+  });
+}
+
+async function deleteStaffing(id) {
+  if (!confirm('배치 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/staffing/${id}`);
+  loadStaffing();
+}
+
+// ===== 안전보건 관리 =====
+
+// 유형별 체크리스트 항목 정의 (산업안전보건법 기준)
+const CHECKLIST_TEMPLATES = {
+  일일: [
+    { section: '작업장 환경', items: [
+      '작업장 통로 및 비상구 확보 여부',
+      '작업장 조명 정상 여부',
+      '바닥 미끄럼 방지 조치 여부',
+      '전기 배선 및 콘센트 정상 여부',
+      '소화기 위치 확인 및 접근 가능 여부',
+    ]},
+    { section: '개인보호구', items: [
+      '안전모 착용 여부',
+      '안전화 착용 여부',
+      '작업에 적합한 PPE 착용 여부',
+      '보호구 손상·불량 여부 확인',
+    ]},
+    { section: '장비·설비', items: [
+      '지게차·하역장비 외관 이상 여부',
+      '컨베이어벨트 정상 작동 여부',
+      '안전 덮개·방호장치 설치 여부',
+      '비상정지 스위치 작동 여부',
+    ]},
+    { section: '작업 전 안전 확인', items: [
+      'TBM(위험예지훈련) 실시 여부',
+      '작업 지시·절차 숙지 여부',
+      '유해·위험 작업 사전 허가 여부',
+    ]},
+  ],
+  주간: [
+    { section: '안전 설비 점검', items: [
+      '소화기 압력·유효기간 확인',
+      '비상조명등 점등 여부',
+      '경보설비 (화재경보기) 작동 확인',
+      '방화문 자동 닫힘 기능 확인',
+      '안전표지판 부착 상태',
+      '위험물 보관창고 시건 및 표시 여부',
+    ]},
+    { section: '작업환경 점검', items: [
+      '소음 측정 및 기준 초과 여부 확인',
+      '분진 발생 작업장 환기 상태',
+      '화학물질 MSDS 게시 여부',
+      '폐기물 분리수거 및 처리 현황',
+    ]},
+    { section: '장비 정기 점검', items: [
+      '지게차 일상점검표 기록 확인',
+      '고소작업대 안전장치 점검',
+      '전기설비 절연 상태 확인',
+      '압력용기 압력계 정상 여부',
+    ]},
+    { section: '안전 관리 행정', items: [
+      '안전교육 일지 작성 여부',
+      '아차사고 보고 현황 확인',
+      '작업허가서 발행 및 관리 현황',
+      '협력업체 안전 관리 현황 확인',
+    ]},
+  ],
+  월간: [
+    { section: '법정 점검 사항', items: [
+      '안전보건관리책임자 업무 수행 확인',
+      '산업안전보건위원회 회의록 작성',
+      '근로자 안전보건교육 실시 여부 (월 1회 이상)',
+      '안전점검 결과 및 개선 조치 이행 여부',
+      '중대재해처벌법 이행 점검',
+    ]},
+    { section: '건강 관리', items: [
+      '근로자 건강검진 대상자 관리',
+      '야간 작업자 특수건강검진 관리',
+      '뇌심혈관질환 예방 프로그램 운영',
+      '직업병 유소견자 사후 관리',
+    ]},
+    { section: '비상 대응', items: [
+      '비상연락망 최신 여부 확인',
+      '소방훈련 실시 여부 (반기 1회 이상)',
+      '구급약품 유효기간 및 구비 상태',
+      '비상대피로 지도 게시 여부',
+    ]},
+    { section: '협력업체 관리', items: [
+      '협력업체 안전보건관리 계획서 확인',
+      '협력업체 근로자 안전교육 이수 확인',
+      '혼재 작업 위험성평가 실시 여부',
+      '협력업체 재해 발생 현황 확인',
+    ]},
+    { section: '위험성 평가', items: [
+      '위험성평가 실시 및 기록 관리',
+      '신규 작업·설비 위험성평가 여부',
+      '개선 조치 이행 현황 점검',
+    ]},
+  ],
+};
+
+function switchSmTab(tab) {
+  document.querySelectorAll('.sm-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('sm-tab-checklist').style.display = tab === 'checklist' ? '' : 'none';
+  document.getElementById('sm-tab-guide').style.display = tab === 'guide' ? '' : 'none';
+  if (tab === 'guide') loadSafetyGuides();
+}
+
+async function loadSafetyMgmt() {
+  const type = document.getElementById('cl-type').value;
+  const site = document.getElementById('cl-site').value;
+  const from = document.getElementById('cl-date-from').value;
+  const to   = document.getElementById('cl-date-to').value;
+
+  let url = `/api/v1/safety_checklists?check_type=${encodeURIComponent(type)}`;
+  if (site) url += `&site=${encodeURIComponent(site)}`;
+  if (from) url += `&date_from=${from}`;
+  if (to)   url += `&date_to=${to}`;
+
+  let rows = [];
+  try { rows = await api.get(url); } catch(e) { rows = []; }
+
+  const okCount = rows.filter(r => r.overall_ok).length;
+  const ngCount = rows.length - okCount;
+  const rate = rows.length ? Math.round(okCount / rows.length * 100) : 0;
+
+  document.getElementById('cl-total').textContent = rows.length;
+  document.getElementById('cl-ok').textContent = okCount;
+  document.getElementById('cl-ng').textContent = ngCount;
+  document.getElementById('cl-rate').textContent = rate + '%';
+
+  const sorted = rows.sort((a, b) => b.date > a.date ? 1 : -1);
+
+  // 날짜별 accordion
+  const groups = {};
+  sorted.forEach(r => {
+    const key = r.date || '날짜 미상';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('cl-list').innerHTML = Object.keys(groups).length
+    ? Object.entries(groups).map(([date, recs], gi) => {
+        const isToday = date === todayStr;
+        const gId = `cl-group-${gi}`;
+        const isOpen = gi === 0;
+        const okN = recs.filter(r => r.overall_ok).length;
+        const dateLabel = (() => {
+          const d = new Date(date + 'T00:00:00');
+          return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+        })();
+        const cards = recs.map(r => {
+          let responses = [];
+          try { responses = JSON.parse(r.responses || '[]'); } catch {}
+          const total = responses.length;
+          const ok = responses.filter(x => x.ok).length;
+          const ng = responses.filter(x => !x.ok);
+          return `<div class="cl-card ${r.overall_ok ? 'cl-ok' : 'cl-ng'}">
+            <div class="cl-card-header">
+              <div>
+                <div class="cl-card-title">${r.site || '-'} · ${r.check_type} 점검</div>
+                <div class="cl-card-sub">점검자: ${r.completed_by || '-'} | 항목 ${ok}/${total} 적합</div>
+              </div>
+              <span class="badge ${r.overall_ok ? 'badge-safety' : 'badge-danger'}">${r.overall_ok ? '적합' : '부적합'}</span>
+            </div>
+            ${ng.length ? `<div class="cl-ng-items">⚠️ 부적합 항목: ${ng.map(x => x.item).join(' / ')}</div>` : ''}
+            ${r.notes ? `<div class="cl-notes">📝 ${r.notes}</div>` : ''}
+            <div class="tbm-actions">
+              <button class="btn-icon" onclick="viewChecklist(${r.id})">상세보기</button>
+              <button class="btn-danger" onclick="deleteChecklist(${r.id})">삭제</button>
+            </div>
+          </div>`;
+        }).join('');
+        return `<div class="tbm-accordion">
+          <div class="tbm-acc-header ${isOpen ? 'open' : ''}" onclick="toggleClGroup('${gId}')">
+            <div class="tbm-acc-date">
+              ${isToday ? '<span class="tbm-today-badge">오늘</span>' : ''}
+              <span class="tbm-acc-datetext">${dateLabel}</span>
+              <span class="tbm-acc-sub">${recs.length}건 · 적합 ${okN}/${recs.length}</span>
+            </div>
+            <span class="tbm-acc-chevron">${isOpen ? '▲' : '▼'}</span>
+          </div>
+          <div class="tbm-acc-body ${isOpen ? 'open' : ''}" id="${gId}">
+            <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">${cards}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--muted);padding:24px">점검 기록이 없습니다. [점검 실시] 버튼으로 체크리스트를 작성하세요.</p>';
+}
+
+function startChecklist() {
+  const type = document.getElementById('cl-type').value;
+  const template = CHECKLIST_TEMPLATES[type];
+  const today = new Date().toISOString().slice(0, 10);
+
+  const itemsHtml = template.map((sec, si) => `
+    <div class="cl-section">
+      <div class="cl-section-title">${sec.section}</div>
+      ${sec.items.map((item, ii) => `
+        <div class="cl-item" id="cli-${si}-${ii}">
+          <div class="cl-item-text">${item}</div>
+          <div class="cl-item-controls">
+            <label class="cl-radio ok"><input type="radio" name="cl-${si}-${ii}" value="ok" checked> ✔ 적합</label>
+            <label class="cl-radio ng"><input type="radio" name="cl-${si}-${ii}" value="ng"> ✘ 부적합</label>
+            <input class="cl-item-note" name="note-${si}-${ii}" placeholder="특이사항" style="display:none"/>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+
+  const formHtml = `
+    <div class="form-row">
+      <div class="form-group"><label>날짜</label><input name="date" type="date" value="${today}"></div>
+      <div class="form-group"><label>현장</label><input name="site" value=""></div>
+    </div>
+    <div class="form-group"><label>점검자</label><input name="completed_by" value=""></div>
+    <div class="cl-checklist-wrap">${itemsHtml}</div>
+    <div class="form-group" style="margin-top:12px"><label>종합 의견</label><textarea name="notes" rows="2"></textarea></div>`;
+
+  showModal(`${type} 안전점검 체크리스트`, formHtml, async (overlay) => {
+    // 부적합 항목에 note input 보이기 로직
+    const responses = [];
+    template.forEach((sec, si) => {
+      sec.items.forEach((item, ii) => {
+        const val = overlay.querySelector(`input[name="cl-${si}-${ii}"]:checked`)?.value;
+        const note = overlay.querySelector(`input[name="note-${si}-${ii}"]`)?.value || '';
+        responses.push({ item, ok: val !== 'ng', note });
+      });
+    });
+    const overallOk = responses.every(r => r.ok) ? 1 : 0;
+    const d = {
+      date: overlay.querySelector('[name="date"]').value,
+      site: overlay.querySelector('[name="site"]').value,
+      check_type: type,
+      responses: JSON.stringify(responses),
+      completed_by: overlay.querySelector('[name="completed_by"]').value,
+      overall_ok: overallOk,
+      notes: overlay.querySelector('[name="notes"]').value,
+    };
+    await api.post('/api/v1/safety_checklists', d);
+    loadSafetyMgmt();
+  });
+
+  // NG 선택 시 note 입력창 표시
+  setTimeout(() => {
+    document.querySelectorAll('.cl-item input[type="radio"]').forEach(radio => {
+      radio.addEventListener('change', e => {
+        const noteEl = e.target.closest('.cl-item').querySelector('.cl-item-note');
+        if (noteEl) noteEl.style.display = e.target.value === 'ng' ? 'block' : 'none';
+      });
+    });
+  }, 50);
+}
+
+async function viewChecklist(id) {
+  const r = await api.get(`/api/v1/safety_checklists/${id}`);
+  let responses = [];
+  try { responses = JSON.parse(r.responses || '[]'); } catch {}
+  const rows = responses.map(x => `
+    <tr>
+      <td>${x.item}</td>
+      <td><span class="badge ${x.ok ? 'badge-safety' : 'badge-danger'}">${x.ok ? '적합' : '부적합'}</span></td>
+      <td style="color:var(--muted);font-size:.8rem">${x.note || '-'}</td>
+    </tr>`).join('');
+  const html = `
+    <div style="margin-bottom:12px;font-size:.85rem;color:var(--muted)">
+      ${r.date} | ${r.site || '-'} | 점검자: ${r.completed_by || '-'}
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" style="font-size:.82rem">
+        <thead><tr><th>점검 항목</th><th>결과</th><th>특이사항</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${r.notes ? `<div style="margin-top:12px;padding:10px;background:var(--card2);border-radius:8px;font-size:.85rem">📝 ${r.notes}</div>` : ''}`;
+  showModal(`${r.check_type} 점검 상세`, html, async () => {});
+}
+
+async function deleteChecklist(id) {
+  if (!confirm('점검 기록을 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_checklists/${id}`);
+  loadSafetyMgmt();
+}
+
+function toggleClGroup(gId) {
+  const body = document.getElementById(gId);
+  const header = body?.previousElementSibling;
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (header) header.classList.toggle('open', !isOpen);
+  if (header) header.querySelector('.tbm-acc-chevron').textContent = isOpen ? '▼' : '▲';
+}
+
+// ===== 매뉴얼·지침 =====
+async function loadSafetyGuides() {
+  const cat = document.getElementById('guide-cat-filter').value;
+  let url = '/api/v1/safety_guides';
+  if (cat) url += `?category=${encodeURIComponent(cat)}`;
+  let rows = [];
+  try { rows = await api.get(url); } catch {}
+
+  const catColors = { '법령': 'var(--danger)', '사내지침': 'var(--amber)', '매뉴얼': 'var(--sky)', '기타': 'var(--muted)' };
+
+  document.getElementById('guide-grid').innerHTML = rows.length ? rows.map(r => `
+    <div class="guide-row" onclick="viewSafetyGuide(${r.id})">
+      <div class="guide-row-left">
+        <span class="guide-cat-badge" style="color:${catColors[r.category]||'var(--muted)'}">${r.category || '기타'}</span>
+        <span class="guide-title">${r.title || '(제목없음)'}</span>
+        ${r.revision ? `<span class="guide-rev">${r.revision}</span>` : ''}
+      </div>
+      <div class="guide-row-right">
+        <span class="guide-meta">시행일 ${r.effective_date || '-'}</span>
+        ${r.file_url ? `<a href="${r.file_url}" target="_blank" class="guide-link" onclick="event.stopPropagation()">📎 파일</a>` : ''}
+        <button class="btn-icon" onclick="event.stopPropagation();editSafetyGuide(${r.id})">수정</button>
+        <button class="btn-danger" onclick="event.stopPropagation();deleteSafetyGuide(${r.id})">삭제</button>
+      </div>
+    </div>`).join('') : `
+    <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:12px">📚</div>
+      <p>등록된 매뉴얼·지침이 없습니다.</p>
+      <p style="font-size:.8rem;margin-top:8px">산업안전보건법, 사내 안전지침, 작업 매뉴얼 등을 등록해 담당자들이 언제든 확인할 수 있게 하세요.</p>
+    </div>`;
+}
+
+function guideForm(r = {}) {
+  const cats = ['법령', '사내지침', '매뉴얼', '기타'];
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>카테고리</label>
+        <select name="category">${cats.map(c => `<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>개정번호</label><input name="revision" placeholder="예: Rev.3" value="${r.revision||''}"></div>
+    </div>
+    <div class="form-group"><label>제목</label><input name="title" value="${r.title||''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>시행일</label><input name="effective_date" type="date" value="${r.effective_date||''}"></div>
+      <div class="form-group"><label>파일 URL (선택)</label><input name="file_url" placeholder="https://..." value="${r.file_url||''}"></div>
+    </div>
+    <div class="form-group"><label>내용 요약</label><textarea name="content" rows="5">${r.content||''}</textarea></div>`;
+}
+
+async function viewSafetyGuide(id) {
+  const r = await api.get(`/api/v1/safety_guides/${id}`);
+  const catColors = { '법령': 'var(--danger)', '사내지침': 'var(--amber)', '매뉴얼': 'var(--sky)', '기타': 'var(--muted)' };
+  const html = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span class="guide-cat-badge" style="color:${catColors[r.category]||'var(--muted)'};">${r.category || '기타'}</span>
+      ${r.revision ? `<span class="guide-rev">${r.revision}</span>` : ''}
+      <span style="font-size:.78rem;color:var(--muted);margin-left:auto">시행일: ${r.effective_date || '-'}</span>
+    </div>
+    ${r.file_url ? `<div style="margin-bottom:12px"><a href="${r.file_url}" target="_blank" class="guide-link">📎 원문 파일 열기</a></div>` : ''}
+    <div class="guide-detail-content">${(r.content || '').replace(/\n/g, '<br>').replace(/□/g, '<span style="color:var(--amber)">□</span>')}</div>`;
+  showModal(r.title || '문서 상세', html, async () => {});
+}
+
+function addSafetyGuide() {
+  showModal('문서 등록', guideForm(), async (overlay) => {
+    const d = getFormData(overlay, ['category', 'revision', 'title', 'effective_date', 'file_url', 'content']);
+    await api.post('/api/v1/safety_guides', d);
+    loadSafetyGuides();
+  });
+}
+
+async function editSafetyGuide(id) {
+  const r = await api.get(`/api/v1/safety_guides/${id}`);
+  showModal('문서 수정', guideForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['category', 'revision', 'title', 'effective_date', 'file_url', 'content']);
+    await api.put(`/api/v1/safety_guides/${id}`, d);
+    loadSafetyGuides();
+  });
+}
+
+async function deleteSafetyGuide(id) {
+  if (!confirm('문서를 삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/safety_guides/${id}`);
+  loadSafetyGuides();
+}
+
+// ===== 특송사업 =====
+
+async function loadSdDashboard() {
+  const today = new Date().toISOString().slice(0, 10);
+  const [deliveries, staff, issues] = await Promise.all([
+    api.get('/api/v1/card_deliveries'),
+    api.get('/api/v1/branch_staff'),
+    api.get('/api/v1/branch_issues'),
+  ]);
+
+  const todayDel = deliveries.filter(r => r.date === today);
+  const todayStaff = staff.filter(r => r.date === today);
+  const openIssues = issues.filter(r => r.status !== '처리완료');
+
+  // KPI cards
+  const totalRec = todayDel.reduce((s, r) => s + (r.received || 0), 0);
+  const totalDel = todayDel.reduce((s, r) => s + (r.delivered || 0), 0);
+  const totalPend = todayDel.reduce((s, r) => s + (r.pending || 0), 0);
+  const totalRet = todayDel.reduce((s, r) => s + (r.returned || 0), 0);
+  const delRate = totalRec ? (totalDel / totalRec * 100).toFixed(1) : '-';
+  document.getElementById('sd-received').textContent = totalRec.toLocaleString();
+  document.getElementById('sd-delivered').textContent = totalDel.toLocaleString();
+  document.getElementById('sd-issues-count').textContent = openIssues.length;
+  document.getElementById('sd-rate').textContent = totalRec ? delRate + '%' : '-';
+
+  // 지사별 배송 현황 테이블
+  const branchMap = {};
+  todayDel.forEach(r => {
+    if (!branchMap[r.branch]) branchMap[r.branch] = { received: 0, delivered: 0, pending: 0, returned: 0 };
+    branchMap[r.branch].received += r.received || 0;
+    branchMap[r.branch].delivered += r.delivered || 0;
+    branchMap[r.branch].pending += r.pending || 0;
+    branchMap[r.branch].returned += r.returned || 0;
+  });
+  const branchList = Object.keys(branchMap).sort();
+  const branchTableHtml = branchList.length
+    ? `<table class="sd-branch-table"><thead><tr><th>지사</th><th>수령</th><th>완료</th><th>미배송</th><th>반송</th><th>완료율</th></tr></thead><tbody>${
+        branchList.map(b => {
+          const d = branchMap[b];
+          const rate = d.received ? (d.delivered / d.received * 100).toFixed(1) + '%' : '-';
+          return `<tr><td>${b}</td><td>${d.received.toLocaleString()}</td><td>${d.delivered.toLocaleString()}</td><td>${d.pending.toLocaleString()}</td><td>${d.returned.toLocaleString()}</td><td>${rate}</td></tr>`;
+        }).join('')
+      }</tbody></table>`
+    : '<div style="color:var(--muted);padding:12px">오늘 배송 데이터 없음</div>';
+  document.getElementById('sd-branch-table').innerHTML = branchTableHtml;
+
+  // 인원 현황 요약
+  const totalShort = todayStaff.reduce((s, r) => s + (r.shortage || 0), 0);
+  const totalResign = todayStaff.reduce((s, r) => s + (r.resigned || 0), 0);
+  const totalNew = todayStaff.reduce((s, r) => s + (r.new_hire || 0), 0);
+  document.getElementById('sd-staff-summary').innerHTML = `<div class="sd-staff-summary">
+    <span class="sd-badge sd-badge-warn">인력부족 ${totalShort}명</span>
+    <span class="sd-badge sd-badge-danger">이탈 ${totalResign}명</span>
+    <span class="sd-badge sd-badge-ok">신규 ${totalNew}명</span></div>`;
+
+  // 미처리 이슈
+  document.getElementById('sd-issues-list').innerHTML = openIssues.length
+    ? openIssues.slice(0, 8).map(r => {
+        const sev = r.severity === '상' ? 'sd-sev-high' : r.severity === '중' ? 'sd-sev-mid' : 'sd-sev-low';
+        return `<div class="sd-issue-row">
+          <span class="sd-sev-badge ${sev}">${r.severity}</span>
+          <span class="sd-issue-branch">[${r.branch || '-'}]</span>
+          <span class="sd-issue-title">${r.title || '-'}</span>
+          <span class="sd-issue-status">${r.status}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);padding:12px 0">미처리 이슈 없음</div>';
+}
+
+// 배송 물량 (일자별 지사별 카드배송 데이터)
+async function loadSdDelivery() {
+  const dateEl = document.getElementById('sd-del-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const all = await api.get('/api/v1/card_deliveries');
+
+  const branches = [...new Set(all.map(r => r.branch).filter(Boolean))].sort();
+  const branchEl = document.getElementById('sd-del-branch');
+  const curBranch = branchEl.value;
+  branchEl.innerHTML = '<option value="">전체 지사</option>' +
+    branches.map(b => `<option ${curBranch === b ? 'selected' : ''}>${b}</option>`).join('');
+  branchEl.value = curBranch;
+
+  const dateVal = dateEl.value;
+  const branchVal = branchEl.value;
+  const filtered = all.filter(r => {
+    if (dateVal && r.date !== dateVal) return false;
+    if (branchVal && r.branch !== branchVal) return false;
+    return true;
+  });
+
+  // KPI 합계
+  const sumRec = filtered.reduce((s, r) => s + (r.received || 0), 0);
+  const sumDel = filtered.reduce((s, r) => s + (r.delivered || 0), 0);
+  const sumPend = filtered.reduce((s, r) => s + (r.pending || 0), 0);
+  const sumRet = filtered.reduce((s, r) => s + (r.returned || 0), 0);
+  document.getElementById('sd-del-received').textContent = sumRec.toLocaleString();
+  document.getElementById('sd-del-delivered').textContent = sumDel.toLocaleString();
+  document.getElementById('sd-del-pending').textContent = sumPend.toLocaleString();
+  document.getElementById('sd-del-returned').textContent = sumRet.toLocaleString();
+
+  document.getElementById('sd-del-tbody').innerHTML = filtered.length
+    ? filtered.map(r => {
+        const rate = r.received ? (r.delivered / r.received * 100).toFixed(1) + '%' : '-';
+        return `<tr>
+          <td>${r.date || '-'}</td>
+          <td>${r.branch || '-'}</td>
+          <td>${r.card_company || '-'}</td>
+          <td>${(r.received||0).toLocaleString()}</td>
+          <td>${(r.delivered||0).toLocaleString()}</td>
+          <td>${(r.pending||0).toLocaleString()}</td>
+          <td>${(r.returned||0).toLocaleString()}</td>
+          <td>${rate}</td>
+          <td>${r.notes || '-'}</td>
+          <td>
+            <button class="btn-sm" onclick="event.stopPropagation();editSdDelivery(${r.id})">수정</button>
+            <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdDelivery(${r.id})">삭제</button>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="10" style="text-align:center;color:var(--muted)">데이터 없음</td></tr>';
+}
+
+function sdDeliveryForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>카드사</label><input name="card_company" value="${r.card_company || ''}">
+    </div>
+    <div class="form-row">
+      <label>입고</label><input name="received" type="number" value="${r.received || 0}">
+    </div>
+    <div class="form-row">
+      <label>배송완료</label><input name="delivered" type="number" value="${r.delivered || 0}">
+    </div>
+    <div class="form-row">
+      <label>미배송</label><input name="pending" type="number" value="${r.pending || 0}">
+    </div>
+    <div class="form-row">
+      <label>반송</label><input name="returned" type="number" value="${r.returned || 0}">
+    </div>
+    <div class="form-row">
+      <label>비고</label><textarea name="notes">${r.notes || ''}</textarea>
+    </div>`;
+}
+
+function addSdDelivery() {
+  showModal('배송 물량 등록', sdDeliveryForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'card_company', 'received', 'delivered', 'pending', 'returned', 'notes']);
+    await api.post('/api/v1/card_deliveries', d);
+    loadSdDelivery();
+  });
+}
+
+async function editSdDelivery(id) {
+  const r = await api.get(`/api/v1/card_deliveries/${id}`);
+  showModal('배송 물량 수정', sdDeliveryForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'card_company', 'received', 'delivered', 'pending', 'returned', 'notes']);
+    await api.put(`/api/v1/card_deliveries/${id}`, d);
+    loadSdDelivery();
+  });
+}
+
+async function deleteSdDelivery(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/card_deliveries/${id}`);
+  loadSdDelivery();
+}
+
+// 인원 현황
+async function loadSdStaff() {
+  const dateEl = document.getElementById('sd-staff-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const all = await api.get('/api/v1/branch_staff');
+
+  const dateVal = dateEl.value;
+  const filtered = all.filter(r => !dateVal || r.date === dateVal);
+
+  // KPI
+  const kTotal = filtered.reduce((s, r) => s + (r.total || 0), 0);
+  const kShort = filtered.reduce((s, r) => s + (r.shortage || 0), 0);
+  const kResign = filtered.reduce((s, r) => s + (r.resigned || 0), 0);
+  const kNew = filtered.reduce((s, r) => s + (r.new_hire || 0), 0);
+  document.getElementById('sd-staff-total').textContent = kTotal.toLocaleString();
+  document.getElementById('sd-staff-shortage').textContent = kShort;
+  document.getElementById('sd-staff-resigned').textContent = kResign;
+  document.getElementById('sd-staff-new').textContent = kNew;
+
+  document.getElementById('sd-staff-tbody').innerHTML = filtered.length
+    ? filtered.map(r => `<tr>
+        <td>${r.date || '-'}</td>
+        <td>${r.branch || '-'}</td>
+        <td>${r.total || 0}</td>
+        <td>${r.absent || 0}</td>
+        <td>${r.resigned || 0}</td>
+        <td>${r.new_hire || 0}</td>
+        <td class="${(r.shortage||0) > 0 ? 'text-danger' : ''}">${r.shortage || 0}</td>
+        <td>${r.notes || '-'}</td>
+        <td>
+          <button class="btn-sm" onclick="event.stopPropagation();editSdStaff(${r.id})">수정</button>
+          <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdStaff(${r.id})">삭제</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--muted)">데이터 없음</td></tr>';
+}
+
+function sdStaffForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>총원</label><input name="total" type="number" value="${r.total || 0}">
+    </div>
+    <div class="form-row">
+      <label>결근</label><input name="absent" type="number" value="${r.absent || 0}">
+    </div>
+    <div class="form-row">
+      <label>이탈</label><input name="resigned" type="number" value="${r.resigned || 0}">
+    </div>
+    <div class="form-row">
+      <label>신규입사</label><input name="new_hire" type="number" value="${r.new_hire || 0}">
+    </div>
+    <div class="form-row">
+      <label>부족인원</label><input name="shortage" type="number" value="${r.shortage || 0}">
+    </div>
+    <div class="form-row">
+      <label>비고</label><textarea name="notes">${r.notes || ''}</textarea>
+    </div>`;
+}
+
+function addSdStaff() {
+  showModal('인원 현황 등록', sdStaffForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'total', 'absent', 'resigned', 'new_hire', 'shortage', 'notes']);
+    await api.post('/api/v1/branch_staff', d);
+    loadSdStaff();
+  });
+}
+
+async function editSdStaff(id) {
+  const r = await api.get(`/api/v1/branch_staff/${id}`);
+  showModal('인원 현황 수정', sdStaffForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'total', 'absent', 'resigned', 'new_hire', 'shortage', 'notes']);
+    await api.put(`/api/v1/branch_staff/${id}`, d);
+    loadSdStaff();
+  });
+}
+
+async function deleteSdStaff(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/branch_staff/${id}`);
+  loadSdStaff();
+}
+
+// 지사 특이사항
+async function loadSdIssues() {
+  const statusEl = document.getElementById('sd-issue-status');
+  const all = await api.get('/api/v1/branch_issues');
+  const statusVal = statusEl ? statusEl.value : '';
+  const filtered = all.filter(r => !statusVal || r.status === statusVal);
+
+  document.getElementById('sd-issue-list').innerHTML = filtered.length
+    ? filtered.map(r => {
+        const sev = r.severity === '상' ? 'sd-sev-high' : r.severity === '중' ? 'sd-sev-mid' : 'sd-sev-low';
+        const sta = r.status === '처리완료' ? 'sd-sta-done' : r.status === '처리중' ? 'sd-sta-proc' : 'sd-sta-open';
+        return `<div class="sd-issue-card">
+          <div class="sd-issue-card-header">
+            <span class="sd-sev-badge ${sev}">${r.severity || '-'}</span>
+            <span class="sd-issue-branch-tag">${r.branch || '-'}</span>
+            <span class="sd-cat-badge">${r.category || '-'}</span>
+            <span class="sd-sta-badge ${sta}">${r.status || '-'}</span>
+            <span class="sd-issue-date">${r.date || '-'}</span>
+            <span class="sd-issue-actions" style="margin-left:auto">
+              <button class="btn-sm" onclick="event.stopPropagation();editSdIssue(${r.id})">수정</button>
+              <button class="btn-sm btn-danger" onclick="event.stopPropagation();deleteSdIssue(${r.id})">삭제</button>
+            </span>
+          </div>
+          <div class="sd-issue-card-title">${r.title || '-'}</div>
+          ${r.content ? `<div class="sd-issue-card-content">${r.content}</div>` : ''}
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);padding:24px;text-align:center">등록된 이슈 없음</div>';
+}
+
+function sdIssueForm(r = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const cats = ['배송지연', '인력부족', '차량고장', '고객민원', '시설문제', '기타'];
+  const sevs = ['상', '중', '하'];
+  const stats = ['미처리', '처리중', '처리완료'];
+  return `
+    <div class="form-row">
+      <label>날짜</label><input name="date" type="date" value="${r.date || today}">
+    </div>
+    <div class="form-row">
+      <label>지사명</label><input name="branch" value="${r.branch || ''}">
+    </div>
+    <div class="form-row">
+      <label>유형</label>
+      <select name="category">${cats.map(c => `<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <label>중요도</label>
+      <select name="severity">${sevs.map(s => `<option ${r.severity===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <label>제목</label><input name="title" value="${r.title || ''}">
+    </div>
+    <div class="form-row">
+      <label>내용</label><textarea name="content">${r.content || ''}</textarea>
+    </div>
+    <div class="form-row">
+      <label>상태</label>
+      <select name="status">${stats.map(s => `<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>`;
+}
+
+function addSdIssue() {
+  showModal('특이사항 등록', sdIssueForm(), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'category', 'severity', 'title', 'content', 'status']);
+    await api.post('/api/v1/branch_issues', d);
+    loadSdIssues();
+  });
+}
+
+async function editSdIssue(id) {
+  const r = await api.get(`/api/v1/branch_issues/${id}`);
+  showModal('특이사항 수정', sdIssueForm(r), async (overlay) => {
+    const d = getFormData(overlay, ['date', 'branch', 'category', 'severity', 'title', 'content', 'status']);
+    await api.put(`/api/v1/branch_issues/${id}`, d);
+    loadSdIssues();
+  });
+}
+
+async function deleteSdIssue(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await api.del(`/api/v1/branch_issues/${id}`);
+  loadSdIssues();
 }

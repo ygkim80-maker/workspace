@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class LeadBase(BaseModel):
@@ -404,3 +404,130 @@ class WeeklyReportOut(WeeklyReportBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     items: Optional[List[WeeklyReportItemOut]] = []
+
+
+class SafetyEduBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    title: Optional[str] = None
+    instructor: Optional[str] = None
+    participant_count: Optional[int] = 0
+    completed: Optional[bool] = False
+    notes: Optional[str] = None
+
+class SafetyEduCreate(SafetyEduBase): pass
+class SafetyEduUpdate(SafetyEduBase): pass
+class SafetyEduOut(SafetyEduBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+    @field_validator('completed', mode='before')
+    @classmethod
+    def coerce_bool(cls, v):
+        if isinstance(v, int):
+            return bool(v)
+        return v
+
+
+class StaffingBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    regular: Optional[int] = 0
+    contract: Optional[int] = 0
+    dispatch: Optional[int] = 0
+    notes: Optional[str] = None
+
+class StaffingCreate(StaffingBase): pass
+class StaffingUpdate(StaffingBase): pass
+class StaffingOut(StaffingBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class SafetyChecklistBase(BaseModel):
+    date: Optional[str] = None
+    site: Optional[str] = None
+    check_type: Optional[str] = '일일'
+    responses: Optional[str] = '[]'
+    completed_by: Optional[str] = None
+    overall_ok: Optional[int] = 1
+    notes: Optional[str] = None
+
+class SafetyChecklistCreate(SafetyChecklistBase): pass
+class SafetyChecklistUpdate(SafetyChecklistBase): pass
+class SafetyChecklistOut(SafetyChecklistBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class SafetyGuideBase(BaseModel):
+    category: Optional[str] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    file_url: Optional[str] = None
+    revision: Optional[str] = None
+    effective_date: Optional[str] = None
+
+class SafetyGuideCreate(SafetyGuideBase): pass
+class SafetyGuideUpdate(SafetyGuideBase): pass
+class SafetyGuideOut(SafetyGuideBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class CardDeliveryBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    card_company: Optional[str] = None
+    received: Optional[int] = 0
+    delivered: Optional[int] = 0
+    pending: Optional[int] = 0
+    returned: Optional[int] = 0
+    notes: Optional[str] = None
+
+class CardDeliveryCreate(CardDeliveryBase): pass
+class CardDeliveryUpdate(CardDeliveryBase): pass
+class CardDeliveryOut(CardDeliveryBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class BranchStaffBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    total: Optional[int] = 0
+    absent: Optional[int] = 0
+    resigned: Optional[int] = 0
+    new_hire: Optional[int] = 0
+    shortage: Optional[int] = 0
+    notes: Optional[str] = None
+
+class BranchStaffCreate(BranchStaffBase): pass
+class BranchStaffUpdate(BranchStaffBase): pass
+class BranchStaffOut(BranchStaffBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None
+
+
+class BranchIssueBase(BaseModel):
+    date: Optional[str] = None
+    branch: Optional[str] = None
+    category: Optional[str] = '기타'
+    severity: Optional[str] = '중'
+    title: Optional[str] = None
+    content: Optional[str] = None
+    status: Optional[str] = '미처리'
+
+class BranchIssueCreate(BranchIssueBase): pass
+class BranchIssueUpdate(BranchIssueBase): pass
+class BranchIssueOut(BranchIssueBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: Optional[datetime] = None

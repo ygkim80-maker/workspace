@@ -13,7 +13,8 @@ from models import (Contract, Customer, Deal, Document, EmailLog, FeedComment, F
                      TBM, Task, User, WeeklyReport, WeeklyReportItem, WorkLog)
 from routers import (contracts, customers, documents, emails, feed, hourly, insights, issues,
                       leads, meetings, pipeline, projects, schedules, sites, tasks, tbm,
-                      weekly_reports, worklogs)
+                      weekly_reports, worklogs, safety_edu, staffing, safety_mgmt,
+                      special_delivery)
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,7 +27,12 @@ STAGES = ["발굴", "접촉", "제안", "협상", "수주", "탈락"]
 for r in (leads.router, customers.router, pipeline.router, projects.router, contracts.router,
           sites.router, issues.router, meetings.router, emails.router, tasks.router,
           schedules.router, insights.router, worklogs.router, documents.router, feed.router,
-          weekly_reports.router, hourly.router, tbm.router):
+          weekly_reports.router, hourly.router, tbm.router,
+          safety_edu.router, staffing.router,
+          safety_mgmt.checklist_router, safety_mgmt.guide_router,
+          special_delivery.card_delivery_router,
+          special_delivery.branch_staff_router,
+          special_delivery.branch_issue_router):
     app.include_router(r)
 
 
@@ -181,6 +187,13 @@ def weekly_report(db: Session = Depends(get_db)):
 def seed_data():
     db = SessionLocal()
     try:
+        # 안전보건 기초 데이터 (항상 먼저 실행)
+        try:
+            from seed_safety import seed_safety_guides
+            seed_safety_guides(db)
+        except Exception:
+            pass
+
         if db.query(Lead).count() > 0:
             return
 

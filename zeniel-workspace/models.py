@@ -231,3 +231,95 @@ class TBM(Base):
     attendee_count = Column(Integer, default=0)
     status = Column(String, default="완료")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyEdu(Base):
+    __tablename__ = "safety_edu"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    title = Column(String)
+    instructor = Column(String)
+    participant_count = Column(Integer, default=0)
+    completed = Column(Integer, default=0)  # 0=False, 1=True
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Staffing(Base):
+    __tablename__ = "staffing"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    regular = Column(Integer, default=0)
+    contract = Column(Integer, default=0)
+    dispatch = Column(Integer, default=0)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyChecklist(Base):
+    __tablename__ = "safety_checklists"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    site = Column(String)
+    check_type = Column(String)       # 일일 / 주간 / 월간
+    responses = Column(Text)          # JSON: [{item, ok, note}]
+    completed_by = Column(String)
+    overall_ok = Column(Integer, default=1)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SafetyGuide(Base):
+    __tablename__ = "safety_guides"
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String)         # 법령 / 사내지침 / 매뉴얼 / 기타
+    title = Column(String)
+    content = Column(Text)
+    file_url = Column(String)
+    revision = Column(String)         # 개정번호 (예: Rev.3)
+    effective_date = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class CardDelivery(Base):
+    __tablename__ = "card_deliveries"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    branch = Column(String, index=True)   # 지사명
+    card_company = Column(String)          # 카드사 (국민·신한·삼성 등)
+    received = Column(Integer, default=0)  # 수령량
+    delivered = Column(Integer, default=0) # 배송완료
+    pending = Column(Integer, default=0)   # 미배송
+    returned = Column(Integer, default=0)  # 반송
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BranchStaff(Base):
+    __tablename__ = "branch_staff"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    branch = Column(String)
+    total = Column(Integer, default=0)     # 총 인원
+    absent = Column(Integer, default=0)    # 결근
+    resigned = Column(Integer, default=0)  # 퇴사
+    new_hire = Column(Integer, default=0)  # 신규 입사
+    shortage = Column(Integer, default=0)  # 결원
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BranchIssue(Base):
+    __tablename__ = "branch_issues"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    branch = Column(String)
+    category = Column(String)   # 인원/배송/민원/차량/기타
+    severity = Column(String, default="중")  # 상/중/하
+    title = Column(String)
+    content = Column(Text)
+    status = Column(String, default="미처리")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -11,29 +11,46 @@
   <aside class="sidebar">
     <div class="brand">ZENIEL<span>WORKSPACE</span></div>
     <nav class="nav">
-      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📊 대시보드</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📡 실시간 현황</div>
+
+      <div class="nav-section-label">물량 관리</div>
+      <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 작업 일지</div>
+      <div class="nav-item" data-page="hourly" onclick="navigate('hourly')">⏱ 시간대별 물량</div>
+      <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 생산성 KPI</div>
+
+      <div class="nav-section-label">안전 관리</div>
+      <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
+      <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈·특이사항</div>
+      <div class="nav-item" data-page="safety-edu" onclick="navigate('safety-edu')">🎓 교육 관리</div>
+      <div class="nav-item" data-page="safety-mgmt" onclick="navigate('safety-mgmt')">🔒 안전보건 관리</div>
+
+      <div class="nav-section-label">인원 운영</div>
+      <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장 현황</div>
+      <div class="nav-item" data-page="staffing" onclick="navigate('staffing')">👥 인원 배치</div>
+
+      <div class="nav-section-label">소통·문서</div>
+      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 현장 소통</div>
+      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
+      <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 매뉴얼·SOP</div>
+      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
+      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
+
+      <div class="nav-section-label">특송사업</div>
+      <div class="nav-item" data-page="sd-dashboard" onclick="navigate('sd-dashboard')">📡 특송 현황</div>
+      <div class="nav-item" data-page="sd-delivery" onclick="navigate('sd-delivery')">📦 배송 물량</div>
+      <div class="nav-item" data-page="sd-staff" onclick="navigate('sd-staff')">👥 인원 현황</div>
+      <div class="nav-item" data-page="sd-issues" onclick="navigate('sd-issues')">⚠️ 지사 특이사항</div>
+
+      <div class="nav-section-label">본사 CRM</div>
       <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
       <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
       <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline')">🔀 파이프라인</div>
-      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트 현황</div>
+      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트</div>
       <div class="nav-item" data-page="contracts" onclick="navigate('contracts')">📄 계약관리</div>
-      <div class="nav-item" data-page="sites" onclick="navigate('sites')">🏗️ 현장관리</div>
-      <div class="nav-item" data-page="issues" onclick="navigate('issues')">⚠️ 이슈관리</div>
       <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">🤝 미팅관리</div>
       <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
-      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
-      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
-      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 메모·인사이트</div>
+      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 인사이트</div>
       <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
-      <div class="nav-section-label">물류현장</div>
-      <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 일일 작업관리</div>
-      <div class="nav-item" data-page="kpi" onclick="navigate('kpi')">📈 KPI 현황</div>
-      <div class="nav-item" data-page="hourly" onclick="navigate('hourly')">⏱ 시간대별 물량</div>
-      <div class="nav-item" data-page="tbm" onclick="navigate('tbm')">🦺 TBM 기록</div>
-      <div class="nav-section-label">협업</div>
-      <div class="nav-item" data-page="documents" onclick="navigate('documents')">📝 문서함</div>
-      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 팀 피드</div>
-      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
     </nav>
   </aside>
 
@@ -49,20 +66,44 @@
     <main class="content">
 
       <section id="page-dashboard" class="page active">
+        <!-- 현장 실시간 현황 대시보드 -->
         <div class="kpi-row">
-          <div class="kpi-card"><span class="kpi-label">리드</span><span class="kpi-value" id="kpi-leads">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">진행 프로젝트</span><span class="kpi-value" id="kpi-projects">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">미완료 할일</span><span class="kpi-value" id="kpi-tasks">0</span></div>
-          <div class="kpi-card"><span class="kpi-label">누적 매출</span><span class="kpi-value" id="kpi-revenue">0</span></div>
+          <div class="kpi-card">
+            <span class="kpi-label">오늘 총 물량</span>
+            <span class="kpi-value" id="dash-actual">-</span>
+            <span style="font-size:.75rem;color:var(--muted)">목표 <span id="dash-target">-</span></span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">달성률</span>
+            <span class="kpi-value" id="dash-rate" style="color:var(--amber)">-</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">오늘 투입인원</span>
+            <span class="kpi-value" id="dash-workers">-</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">미처리 이슈</span>
+            <span class="kpi-value" id="dash-issues" style="color:var(--danger)">-</span>
+          </div>
         </div>
         <div class="dash-grid">
           <div class="panel">
-            <div class="panel-header"><h3>파이프라인 요약</h3></div>
-            <div id="pipeline-summary"></div>
+            <div class="panel-header"><h3>현장별 오늘 현황</h3></div>
+            <div id="dash-sites-table"></div>
           </div>
           <div class="panel">
-            <div class="panel-header"><h3>최근 활동</h3><button class="btn-secondary" onclick="showWeeklyReport()">주간보고</button></div>
-            <div id="timeline" class="timeline"></div>
+            <div class="panel-header"><h3>미처리 이슈·특이사항</h3><button class="btn-primary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('issues')">전체보기</button></div>
+            <div id="dash-issues-list" class="timeline"></div>
+          </div>
+        </div>
+        <div class="dash-grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-header"><h3>오늘 TBM 현황</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('tbm')">전체보기</button></div>
+            <div id="dash-tbm-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>현장 소통 최신 공지</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('feed')">전체보기</button></div>
+            <div id="dash-feed-list" class="timeline"></div>
           </div>
         </div>
       </section>
@@ -334,6 +375,189 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- ===== 안전교육 관리 ===== -->
+      <section id="page-safety-edu" class="page">
+        <div class="toolbar">
+          <select id="edu-site-filter" onchange="loadSafetyEdu()">
+            <option value="">전체 현장</option>
+          </select>
+          <input id="edu-date-from" type="date" onchange="loadSafetyEdu()"/>
+          <input id="edu-date-to" type="date" onchange="loadSafetyEdu()" style="width:auto"/>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSafetyEdu()">+ 교육 등록</button>
+        </div>
+        <div class="kpi-row" id="edu-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 교육 횟수</span><span class="kpi-value" id="edu-count">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">총 이수인원</span><span class="kpi-value" id="edu-participants">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">이번달 교육</span><span class="kpi-value" id="edu-this-month">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">완료율</span><span class="kpi-value" id="edu-completion">-</span></div>
+        </div>
+        <div id="edu-grid" class="tbm-grid"></div>
+      </section>
+
+      <!-- ===== 인원 배치 ===== -->
+      <section id="page-staffing" class="page">
+        <div class="toolbar">
+          <input id="staffing-date" type="date" onchange="loadStaffing()"/>
+          <select id="staffing-site-filter" onchange="loadStaffing()">
+            <option value="">전체 현장</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addStaffing()">+ 배치 등록</button>
+        </div>
+        <div class="kpi-row" id="staffing-kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 배치인원</span><span class="kpi-value" id="staffing-total">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">정규직</span><span class="kpi-value" id="staffing-regular">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">계약직/파견</span><span class="kpi-value" id="staffing-contract">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">현장 수</span><span class="kpi-value" id="staffing-sites">-</span></div>
+        </div>
+        <div id="staffing-table-wrap" class="panel" style="margin-top:16px">
+          <table class="data-table" id="staffing-table">
+            <thead><tr><th>현장</th><th>날짜</th><th>정규직</th><th>계약직</th><th>파견</th><th>합계</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="staffing-tbody"><tr><td colspan="8" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 안전보건 관리 ===== -->
+      <section id="page-safety-mgmt" class="page">
+        <!-- 탭 -->
+        <div class="sm-tabs">
+          <button class="sm-tab active" data-tab="checklist" onclick="switchSmTab('checklist')">📋 점검 체크리스트</button>
+          <button class="sm-tab" data-tab="guide" onclick="switchSmTab('guide')">📚 매뉴얼·지침</button>
+        </div>
+
+        <!-- ===== 체크리스트 탭 ===== -->
+        <div id="sm-tab-checklist" class="sm-tab-body">
+          <div class="toolbar">
+            <select id="cl-type" onchange="loadSafetyMgmt()">
+              <option value="일일">일일 점검</option>
+              <option value="주간">주간 점검</option>
+              <option value="월간">월간 점검</option>
+            </select>
+            <input id="cl-site" placeholder="현장명" style="width:140px" oninput="loadSafetyMgmt()"/>
+            <input id="cl-date-from" type="date" onchange="loadSafetyMgmt()"/>
+            <input id="cl-date-to" type="date" onchange="loadSafetyMgmt()" style="width:auto"/>
+            <span class="spacer"></span>
+            <button class="btn-primary" onclick="startChecklist()">+ 점검 실시</button>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi-card"><span class="kpi-label">총 점검 횟수</span><span class="kpi-value" id="cl-total">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">적합</span><span class="kpi-value" id="cl-ok" style="color:var(--emerald)">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">부적합</span><span class="kpi-value" id="cl-ng" style="color:var(--danger)">-</span></div>
+            <div class="kpi-card"><span class="kpi-label">적합률</span><span class="kpi-value" id="cl-rate">-</span></div>
+          </div>
+          <div id="cl-list" class="sm-cl-list"></div>
+        </div>
+
+        <!-- ===== 매뉴얼·지침 탭 ===== -->
+        <div id="sm-tab-guide" class="sm-tab-body" style="display:none">
+          <div class="toolbar">
+            <select id="guide-cat-filter" onchange="loadSafetyGuides()">
+              <option value="">전체</option>
+              <option>법령</option><option>사내지침</option><option>매뉴얼</option><option>기타</option>
+            </select>
+            <span class="spacer"></span>
+            <button class="btn-primary" onclick="addSafetyGuide()">+ 문서 등록</button>
+          </div>
+          <div id="guide-grid" class="guide-grid"></div>
+        </div>
+      </section>
+
+      <!-- ===== 특송 현황 대시보드 ===== -->
+      <section id="page-sd-dashboard" class="page">
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">오늘 총 수령</span><span class="kpi-value" id="sd-received">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">배송완료</span><span class="kpi-value" id="sd-delivered" style="color:var(--emerald)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">완료율</span><span class="kpi-value" id="sd-rate" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">미처리 이슈</span><span class="kpi-value" id="sd-issues-count" style="color:var(--danger)">-</span></div>
+        </div>
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>지사별 오늘 현황</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-delivery')">전체보기</button></div>
+            <div id="sd-branch-table"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>미처리 이슈</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-issues')">전체보기</button></div>
+            <div id="sd-issues-list" class="timeline"></div>
+          </div>
+        </div>
+        <div class="dash-grid" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-header"><h3>오늘 인원 이탈·결원</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('sd-staff')">전체보기</button></div>
+            <div id="sd-staff-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>반송 현황</h3></div>
+            <div id="sd-return-summary"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 배송 물량 ===== -->
+      <section id="page-sd-delivery" class="page">
+        <div class="toolbar">
+          <input id="sd-del-date" type="date" onchange="loadSdDelivery()"/>
+          <select id="sd-del-branch" onchange="loadSdDelivery()"><option value="">전체 지사</option></select>
+          <select id="sd-del-company" onchange="loadSdDelivery()">
+            <option value="">전체 카드사</option>
+            <option>국민카드</option><option>신한카드</option><option>삼성카드</option>
+            <option>현대카드</option><option>롯데카드</option><option>하나카드</option><option>기타</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdDelivery()">+ 물량 등록</button>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 수령</span><span class="kpi-value" id="sd-del-received">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">배송완료</span><span class="kpi-value" id="sd-del-delivered" style="color:var(--emerald)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">미배송</span><span class="kpi-value" id="sd-del-pending" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">반송</span><span class="kpi-value" id="sd-del-returned" style="color:var(--danger)">-</span></div>
+        </div>
+        <div class="panel">
+          <table class="data-table" id="sd-del-table">
+            <thead><tr><th>날짜</th><th>지사</th><th>카드사</th><th>수령</th><th>완료</th><th>미배송</th><th>반송</th><th>완료율</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="sd-del-tbody"><tr><td colspan="10" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 인원 현황 ===== -->
+      <section id="page-sd-staff" class="page">
+        <div class="toolbar">
+          <input id="sd-staff-date" type="date" onchange="loadSdStaff()"/>
+          <select id="sd-staff-branch" onchange="loadSdStaff()"><option value="">전체 지사</option></select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdStaff()">+ 인원 현황 등록</button>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">총 인원</span><span class="kpi-value" id="sd-staff-total">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">결원</span><span class="kpi-value" id="sd-staff-shortage" style="color:var(--danger)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">퇴사</span><span class="kpi-value" id="sd-staff-resigned" style="color:var(--amber)">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">신규입사</span><span class="kpi-value" id="sd-staff-new" style="color:var(--emerald)">-</span></div>
+        </div>
+        <div class="panel">
+          <table class="data-table">
+            <thead><tr><th>날짜</th><th>지사</th><th>총인원</th><th>결근</th><th>퇴사</th><th>신규</th><th>결원</th><th>비고</th><th>작업</th></tr></thead>
+            <tbody id="sd-staff-tbody"><tr><td colspan="9" class="empty-state">데이터 없음</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 지사 특이사항 ===== -->
+      <section id="page-sd-issues" class="page">
+        <div class="toolbar">
+          <input id="sd-issue-date-from" type="date" onchange="loadSdIssues()"/>
+          <input id="sd-issue-date-to" type="date" onchange="loadSdIssues()" style="width:auto"/>
+          <select id="sd-issue-branch" onchange="loadSdIssues()"><option value="">전체 지사</option></select>
+          <select id="sd-issue-status" onchange="loadSdIssues()">
+            <option value="">전체 상태</option><option>미처리</option><option>처리중</option><option>완료</option>
+          </select>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="addSdIssue()">+ 이슈 등록</button>
+        </div>
+        <div id="sd-issue-list" class="sd-issue-list"></div>
       </section>
 
       <!-- ===== 팀 피드 ===== -->

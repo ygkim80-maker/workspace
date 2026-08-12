@@ -26,8 +26,8 @@ body {
 .sidebar { width: 220px; background: var(--sidebar); color: var(--text); flex-shrink: 0; border-right: 1px solid var(--border); }
 .brand { padding: 20px 18px; font-weight: 900; font-size: 1.1rem; color: #fff; border-bottom: 1px solid var(--border); letter-spacing: 1px; }
 .brand span { display: block; font-size: 0.65rem; color: var(--amber); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-.nav-item { padding: 11px 18px; cursor: pointer; font-size: 0.83rem; transition: background .12s, color .12s; color: var(--muted); }
-.nav-item:hover { background: #0f2540; color: var(--text); }
+.nav-item { padding: 9px 18px 9px 26px; cursor: pointer; font-size: 0.82rem; transition: background .12s, color .12s; color: var(--muted); border-left: 3px solid transparent; }
+.nav-item:hover { background: #0f2540; color: var(--text); border-left-color: var(--border); }
 .nav-item.active { background: linear-gradient(90deg, #1a3a6b, #0f2540); color: var(--sky); font-weight: 700; border-left: 3px solid var(--amber); }
 
 /* Main */
@@ -177,7 +177,29 @@ body {
 }
 
 /* Nav section labels */
-.nav-section-label { padding: 14px 18px 4px; font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+.nav-section-label {
+  padding: 18px 14px 6px;
+  font-size: 0.68rem;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-section-label::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 10px;
+  background: var(--amber);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.nav-section-label:first-of-type { border-top: 1px solid var(--border); margin-top: 8px; }
 
 /* KPI inline */
 .kpi-stat-inline { display: flex; gap: 20px; flex-wrap: wrap; }
@@ -294,6 +316,24 @@ body {
 .hourly-table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 
 /* TBM 기록 */
+/* TBM Accordion */
+.tbm-accordion { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tbm-acc-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px; cursor: pointer; background: var(--card2);
+  transition: background .12s;
+  user-select: none;
+}
+.tbm-acc-header:hover { background: #122840; }
+.tbm-acc-header.open { border-bottom: 1px solid var(--border); }
+.tbm-acc-date { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tbm-acc-datetext { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+.tbm-acc-sub { font-size: 0.75rem; color: var(--muted); }
+.tbm-acc-chevron { font-size: 0.7rem; color: var(--muted); transition: transform .2s; }
+.tbm-today-badge { background: var(--amber); color: #000; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 20px; letter-spacing: .5px; }
+.tbm-acc-body { display: none; padding: 14px; background: var(--bg); }
+.tbm-acc-body.open { display: block; }
+
 .tbm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 .tbm-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
 .tbm-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
@@ -315,3 +355,89 @@ body {
   .wr-sidebar, .wr-editor-top, .sidebar, .topbar { display: none !important; }
   .wr-table-wrap { box-shadow: none; }
 }
+
+/* ===== 안전보건 관리 ===== */
+.sm-tabs { display: flex; gap: 4px; padding: 0 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.sm-tab { padding: 9px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: .85rem; cursor: pointer; transition: all .12s; }
+.sm-tab:hover { color: var(--text); border-color: var(--sky); }
+.sm-tab.active { background: var(--sky); color: #000; font-weight: 700; border-color: var(--sky); }
+.sm-tab-body { animation: fadeIn .15s ease; }
+
+/* 체크리스트 */
+.sm-cl-list { display: flex; flex-direction: column; gap: 8px; }
+.cl-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; border-left: 4px solid var(--border); }
+.cl-card.cl-ok { border-left-color: var(--emerald); }
+.cl-card.cl-ng { border-left-color: var(--danger); }
+.cl-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.cl-card-title { font-size: .88rem; font-weight: 700; color: var(--text); }
+.cl-card-sub { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+.cl-ng-items { font-size: .78rem; color: var(--danger); background: rgba(248,113,113,.08); border-radius: 6px; padding: 7px 10px; margin: 6px 0; }
+.cl-notes { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+/* 체크리스트 작성 모달 */
+.cl-checklist-wrap { margin-top: 14px; max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.cl-section { background: var(--card2); border-radius: 8px; padding: 12px; }
+.cl-section-title { font-size: .8rem; font-weight: 800; color: var(--amber); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.cl-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cl-item:last-child { border-bottom: none; }
+.cl-item-text { font-size: .82rem; color: var(--text); flex: 1; line-height: 1.5; }
+.cl-item-controls { display: flex; flex-direction: column; gap: 4px; min-width: 140px; align-items: flex-end; }
+.cl-radio { display: flex; align-items: center; gap: 5px; font-size: .78rem; cursor: pointer; white-space: nowrap; }
+.cl-radio.ok { color: var(--emerald); }
+.cl-radio.ng { color: var(--danger); }
+.cl-item-note { width: 130px; padding: 4px 8px; font-size: .76rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-top: 4px; }
+
+/* 매뉴얼·지침 리스트 */
+.guide-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.guide-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 13px 16px; cursor: pointer; transition: background .12s, border-color .12s;
+}
+.guide-row:hover { background: var(--card2); border-color: var(--sky); }
+.guide-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.guide-row-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.guide-cat-badge { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; white-space: nowrap; }
+.guide-rev { font-size: .68rem; color: var(--muted); background: var(--card2); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.guide-title { font-size: .88rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guide-meta { font-size: .74rem; color: var(--muted); white-space: nowrap; }
+.guide-link { font-size: .76rem; color: var(--sky); text-decoration: none; }
+.guide-link:hover { text-decoration: underline; }
+.guide-detail-content { font-size: .84rem; color: var(--text); line-height: 1.9; white-space: pre-wrap; background: var(--card2); border-radius: 8px; padding: 14px 16px; max-height: 480px; overflow-y: auto; }
+
+/* 특송사업 */
+.sd-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.sd-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+.sd-kpi-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.sd-kpi-val { font-size: 1.6rem; font-weight: 800; color: var(--sky); }
+.sd-section-title { font-size: .82rem; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: .8px; margin: 20px 0 10px; }
+.sd-branch-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.sd-branch-table th { background: var(--card2); color: var(--muted); font-size: .72rem; text-transform: uppercase; padding: 8px 12px; text-align: left; }
+.sd-branch-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.sd-branch-table tr:last-child td { border-bottom: none; }
+.sd-staff-summary { display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 0; }
+.sd-badge { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+.sd-badge-ok { background: rgba(52,211,153,.15); color: var(--emerald); }
+.sd-badge-warn { background: rgba(245,158,11,.15); color: var(--amber); }
+.sd-badge-danger { background: rgba(248,113,113,.15); color: var(--danger); }
+.sd-issue-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+.sd-issue-row:last-child { border-bottom: none; }
+.sd-issue-branch { color: var(--sky); font-weight: 600; }
+.sd-issue-title { flex: 1; color: var(--text); }
+.sd-issue-status { font-size: .72rem; color: var(--muted); background: var(--card2); padding: 2px 8px; border-radius: 10px; }
+.sd-sev-badge { display: inline-block; font-size: .68rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; }
+.sd-sev-high { background: rgba(248,113,113,.18); color: var(--danger); }
+.sd-sev-mid { background: rgba(245,158,11,.18); color: var(--amber); }
+.sd-sev-low { background: rgba(52,211,153,.12); color: var(--emerald); }
+.sd-issue-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.sd-issue-card-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.sd-issue-branch-tag { font-size: .78rem; font-weight: 700; color: var(--sky); }
+.sd-cat-badge { font-size: .68rem; background: var(--card2); color: var(--muted); padding: 2px 8px; border-radius: 10px; }
+.sd-sta-badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.sd-sta-open { background: rgba(248,113,113,.15); color: var(--danger); }
+.sd-sta-proc { background: rgba(245,158,11,.15); color: var(--amber); }
+.sd-sta-done { background: rgba(52,211,153,.12); color: var(--emerald); }
+.sd-issue-date { font-size: .72rem; color: var(--muted); }
+.sd-issue-card-title { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.sd-issue-card-content { font-size: .82rem; color: var(--muted); line-height: 1.7; white-space: pre-wrap; }
+.text-danger { color: var(--danger); font-weight: 700; }

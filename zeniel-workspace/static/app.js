@@ -203,29 +203,74 @@ function validateEmail(el) {
 
 // ===== 대시보드 =====
 async function loadDashboard() {
-  const d = await api.get('/api/v1/dashboard');
-  const { kpi, pipeline_stages, recent_leads, recent_meetings, recent_tasks } = d;
-  document.getElementById('kpi-leads').textContent = kpi.leads.toLocaleString();
-  document.getElementById('kpi-projects').textContent = kpi.active_projects.toLocaleString();
-  document.getElementById('kpi-tasks').textContent = kpi.pending_tasks.toLocaleString();
-  document.getElementById('kpi-revenue').textContent = fmt.money(kpi.total_revenue);
-  const maxStage = Math.max(...Object.values(pipeline_stages), 1);
-  document.getElementById('pipeline-summary').innerHTML = ['발굴','접촉','제안','협상','수주','탈락'].map(s => `
-    <div class="pipeline-row">
-      <span class="label">${s}</span>
-      <div class="pipeline-track"><div class="pipeline-fill" style="width:${(pipeline_stages[s]||0)/maxStage*100}%"></div></div>
-      <span class="pipeline-num">${pipeline_stages[s]||0}</span>
-    </div>`).join('');
-  const timeline = [
-    ...recent_leads.map(l => ({ icon: '👤', title: `리드 등록: ${l.company}`, sub: l.status, time: fmt.date(l.created_at?.slice(0,10)) })),
-    ...recent_meetings.map(m => ({ icon: '🤝', title: `미팅: ${m.title}`, sub: m.counterpart, time: fmt.date(m.date) })),
-    ...recent_tasks.map(t => ({ icon: t.done ? '✅' : '📋', title: t.title, sub: t.done ? '완료' : '미완료', time: fmt.date(t.due_date) })),
-  ].slice(0, 8);
-  document.getElementById('timeline').innerHTML = timeline.map(t => `
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Fetch data in parallel, fail gracefully
+  const [worklogs, issues, tbmRecords, feedPosts] = await Promise.all([
+    api.get('/api/v1/worklogs').catch(() => []),
+    api.get('/api/v1/issues').catch(() => []),
+    api.get('/api/v1/tbm').catch(() => []),
+    api.get('/api/v1/feed').catch(() => []),
+  ]);
+
+  // KPI — today's volume
+  const todayLogs = worklogs.filter(r => r.date === today);
+  const totalTarget  = todayLogs.reduce((s, r) => s + (r.target_qty || 0), 0);
+  const totalActual  = todayLogs.reduce((s, r) => s + (r.actual_qty || 0), 0);
+  const totalWorkers = todayLogs.reduce((s, r) => s + (r.worker_count || 0), 0);
+  const openIssues   = issues.filter(r => r.status !== '해결').length;
+
+  document.getElementById('dash-actual').textContent = totalActual.toLocaleString();
+  document.getElementById('dash-target').textContent = totalTarget.toLocaleString();
+  document.getElementById('dash-rate').textContent = totalTarget ? (totalActual / totalTarget * 100).toFixed(1) + '%' : '-';
+  document.getElementById('dash-workers').textContent = totalWorkers + '명';
+  document.getElementById('dash-issues').textContent = openIssues;
+
+  // Sites table — group today's worklogs by site
+  const bySite = {};
+  todayLogs.forEach(r => {
+    if (!bySite[r.site]) bySite[r.site] = { target: 0, actual: 0, workers: 0 };
+    bySite[r.site].target  += r.target_qty || 0;
+    bySite[r.site].actual  += r.actual_qty || 0;
+    bySite[r.site].workers += r.worker_count || 0;
+  });
+  const siteEntries = Object.entries(bySite);
+  document.getElementById('dash-sites-table').innerHTML = siteEntries.length ? `
+    <table class="data-table" style="font-size:.82rem">
+      <thead><tr><th>현장</th><th>목표</th><th>실적</th><th>달성률</th><th>인원</th></tr></thead>
+      <tbody>${siteEntries.map(([site, v]) => {
+        const rate = v.target ? (v.actual / v.target * 100).toFixed(1) : 0;
+        const color = rate >= 100 ? 'var(--emerald)' : rate >= 80 ? 'var(--amber)' : 'var(--danger)';
+        return `<tr><td>${site||'-'}</td><td>${v.target.toLocaleString()}</td><td>${v.actual.toLocaleString()}</td>
+          <td style="color:${color};font-weight:700">${rate}%</td><td>${v.workers}명</td></tr>`;
+      }).join('')}</tbody>
+    </table>` : '<p style="color:var(--muted);padding:20px;font-size:.85rem">오늘 작업 데이터가 없습니다.</p>';
+
+  // Issues list — open only, latest 5
+  const openList = issues.filter(r => r.status !== '해결').slice(0, 5);
+  document.getElementById('dash-issues-list').innerHTML = openList.length ? openList.map(r => `
+    <div class="timeline-item">
+      <div class="timeline-dot" style="background:var(--danger)"></div>
+      <div><h4>${r.title || '(제목없음)'}</h4><p>${r.site || ''} ${r.status ? '· ' + r.status : ''}</p></div>
+    </div>`).join('') : '<p style="color:var(--muted);padding:20px;font-size:.85rem">미처리 이슈 없음</p>';
+
+  // TBM today summary
+  const todayTBM = tbmRecords.filter(r => r.date === today);
+  document.getElementById('dash-tbm-summary').innerHTML = todayTBM.length ? todayTBM.map(r => `
+    <div style="padding:10px;border-bottom:1px solid var(--border)">
+      <div style="font-weight:600;font-size:.9rem">${r.site || '-'} · ${r.team || ''}</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-top:4px">리더: ${r.leader || '-'} | 참석 ${r.attendee_count || 0}명</div>
+      <div style="font-size:.8rem;margin-top:4px;color:var(--text)">${r.safety_topic || ''}</div>
+    </div>`).join('') : '<p style="color:var(--muted);padding:20px;font-size:.85rem">오늘 TBM 기록 없음</p>';
+
+  // Feed — latest 5
+  const latestFeed = feedPosts.slice(0, 5);
+  document.getElementById('dash-feed-list').innerHTML = latestFeed.length ? latestFeed.map(r => `
     <div class="timeline-item">
       <div class="timeline-dot"></div>
-      <div><h4>${t.icon} ${t.title}</h4><p>${t.sub || ''} ${t.time ? '· ' + t.time : ''}</p></div>
-    </div>`).join('') || '<p style="color:#999;font-size:13px">활동 내역이 없습니다.</p>';
+      <div><h4>${r.category ? '['+r.category+'] ' : ''}${r.title || '(제목없음)'}</h4>
+        <p>${r.author || ''} ${r.created_at ? '· ' + r.created_at.slice(0,10) : ''}</p></div>
+    </div>`).join('') : '<p style="color:var(--muted);padding:20px;font-size:.85rem">최신 공지 없음</p>';
 }
 
 // ===== 리드 =====
