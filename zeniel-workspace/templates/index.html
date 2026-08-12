@@ -10,7 +10,15 @@
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">ZENIEL<span>WORKSPACE</span></div>
-    <nav class="nav">
+
+    <!-- 워크스페이스 전환 탭 -->
+    <div class="ws-tabs">
+      <button class="ws-tab active" id="ws-tab-logistics" onclick="switchWorkspace('logistics')">🏭 물류현장</button>
+      <button class="ws-tab" id="ws-tab-special" onclick="switchWorkspace('special')">🚚 특송현장</button>
+    </div>
+
+    <!-- 물류현장 메뉴 -->
+    <nav class="nav" id="nav-logistics">
       <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📡 실시간 현황</div>
 
       <div class="nav-section-label">물량 관리</div>
@@ -35,12 +43,6 @@
       <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
       <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
 
-      <div class="nav-section-label">특송사업</div>
-      <div class="nav-item" data-page="sd-dashboard" onclick="navigate('sd-dashboard')">📡 특송 현황</div>
-      <div class="nav-item" data-page="sd-delivery" onclick="navigate('sd-delivery')">📦 배송 물량</div>
-      <div class="nav-item" data-page="sd-staff" onclick="navigate('sd-staff')">👥 인원 현황</div>
-      <div class="nav-item" data-page="sd-issues" onclick="navigate('sd-issues')">⚠️ 지사 특이사항</div>
-
       <div class="nav-section-label">본사 CRM</div>
       <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
       <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
@@ -51,6 +53,25 @@
       <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
       <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 인사이트</div>
       <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
+    </nav>
+
+    <!-- 특송현장 메뉴 -->
+    <nav class="nav" id="nav-special" style="display:none">
+      <div class="nav-item" data-page="sd-dashboard" onclick="navigate('sd-dashboard')">📡 특송 현황</div>
+
+      <div class="nav-section-label">배송 관리</div>
+      <div class="nav-item" data-page="sd-delivery" onclick="navigate('sd-delivery')">📦 배송 물량</div>
+
+      <div class="nav-section-label">인원 운영</div>
+      <div class="nav-item" data-page="sd-staff" onclick="navigate('sd-staff')">👥 인원 현황</div>
+
+      <div class="nav-section-label">현장 이슈</div>
+      <div class="nav-item" data-page="sd-issues" onclick="navigate('sd-issues')">⚠️ 지사 특이사항</div>
+
+      <div class="nav-section-label">소통·문서</div>
+      <div class="nav-item" data-page="feed" onclick="navigate('feed')">💬 현장 소통</div>
+      <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
+      <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
     </nav>
   </aside>
 
