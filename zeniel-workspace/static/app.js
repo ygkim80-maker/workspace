@@ -1010,4 +1010,4 @@ document.addEventListener('click', e => {
 });
 
 // ===== 초기화 =====
-document.addEventListener('DOMContentLoaded', () => { navigate('dashboard'); });
+document.addEventListener('DOMContentLoaded', () => { switchWorkspace('hq'); });
