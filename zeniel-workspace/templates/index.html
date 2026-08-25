@@ -13,13 +13,36 @@
 
     <!-- 워크스페이스 전환 탭 -->
     <div class="ws-tabs">
-      <button class="ws-tab active" id="ws-tab-logistics" onclick="switchWorkspace('logistics')">🏭 물류현장</button>
-      <button class="ws-tab" id="ws-tab-special" onclick="switchWorkspace('special')">🚚 특송현장</button>
+      <button class="ws-tab active" id="ws-tab-hq" onclick="switchWorkspace('hq')">🏢 본사</button>
+      <button class="ws-tab" id="ws-tab-logistics" onclick="switchWorkspace('logistics')">🏭 물류</button>
+      <button class="ws-tab" id="ws-tab-special" onclick="switchWorkspace('special')">🚚 특송</button>
     </div>
 
+    <!-- 본사 메뉴 -->
+    <nav class="nav" id="nav-hq" style="display:none">
+      <div class="nav-item" data-page="hq-dashboard" onclick="navigate('hq-dashboard')">📊 본사 현황</div>
+
+      <div class="nav-section-label">CRM</div>
+      <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
+      <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
+      <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline')">🔀 파이프라인</div>
+      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트</div>
+      <div class="nav-item" data-page="contracts" onclick="navigate('contracts')">📄 계약관리</div>
+      <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">🤝 미팅관리</div>
+      <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
+      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 인사이트</div>
+
+      <div class="nav-section-label">리포트</div>
+      <div class="nav-item" data-page="auto-report" onclick="navigate('auto-report')">📋 자동 리포트</div>
+      <div class="nav-item" data-page="weekly-report" onclick="navigate('weekly-report')">📋 주간보고</div>
+
+      <div class="nav-section-label">관리</div>
+      <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
+    </nav>
+
     <!-- 물류현장 메뉴 -->
-    <nav class="nav" id="nav-logistics">
-      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">📡 실시간 현황</div>
+    <nav class="nav" id="nav-logistics" style="display:none">
+      <div class="nav-item" data-page="dashboard" onclick="navigate('dashboard')">📡 실시간 현황</div>
 
       <div class="nav-section-label">물량 관리</div>
       <div class="nav-item" data-page="worklog" onclick="navigate('worklog')">📦 작업 일지</div>
@@ -43,16 +66,6 @@
       <div class="nav-item" data-page="tasks" onclick="navigate('tasks')">✅ 할일</div>
       <div class="nav-item" data-page="schedules" onclick="navigate('schedules')">📅 일정</div>
 
-      <div class="nav-section-label">본사 CRM</div>
-      <div class="nav-item" data-page="leads" onclick="navigate('leads')">👤 리드관리</div>
-      <div class="nav-item" data-page="customers" onclick="navigate('customers')">🏢 고객관리</div>
-      <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline')">🔀 파이프라인</div>
-      <div class="nav-item" data-page="projects" onclick="navigate('projects')">📁 프로젝트</div>
-      <div class="nav-item" data-page="contracts" onclick="navigate('contracts')">📄 계약관리</div>
-      <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">🤝 미팅관리</div>
-      <div class="nav-item" data-page="emails" onclick="navigate('emails')">✉️ 메일관리</div>
-      <div class="nav-item" data-page="insights" onclick="navigate('insights')">💡 인사이트</div>
-      <div class="nav-item" data-page="settings" onclick="navigate('settings')">⚙️ 설정</div>
     </nav>
 
     <!-- 특송현장 메뉴 -->
@@ -86,7 +99,50 @@
 
     <main class="content">
 
-      <section id="page-dashboard" class="page active">
+      <!-- ===== 본사 현황 ===== -->
+      <section id="page-hq-dashboard" class="page">
+        <div class="kpi-row">
+          <div class="kpi-card"><span class="kpi-label">전체 리드</span><span class="kpi-value" id="hq-leads">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">진행 중 딜</span><span class="kpi-value" id="hq-deals">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">활성 프로젝트</span><span class="kpi-value" id="hq-projects">-</span></div>
+          <div class="kpi-card"><span class="kpi-label">이번달 계약</span><span class="kpi-value" id="hq-contracts">-</span></div>
+        </div>
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>파이프라인 현황</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('pipeline')">전체보기</button></div>
+            <div id="hq-pipeline-summary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>최근 미팅</h3><button class="btn-secondary" style="font-size:.75rem;padding:5px 10px" onclick="navigate('meetings')">전체보기</button></div>
+            <div id="hq-recent-meetings" class="timeline"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 자동 리포트 ===== -->
+      <section id="page-auto-report" class="page">
+        <div class="toolbar">
+          <select id="ar-type">
+            <option value="weekly">주간 리포트</option>
+            <option value="monthly">월간 리포트</option>
+          </select>
+          <select id="ar-target">
+            <option value="logistics">물류현장</option>
+            <option value="special">특송현장</option>
+            <option value="hq">본사 CRM</option>
+            <option value="all">전체 통합</option>
+          </select>
+          <input id="ar-date" type="date"/>
+          <span class="spacer"></span>
+          <button class="btn-primary" onclick="generateAutoReport()">📋 리포트 생성</button>
+          <button class="btn-secondary" onclick="printReport()">🖨️ 인쇄</button>
+        </div>
+        <div class="panel" id="ar-output" style="min-height:400px;white-space:pre-wrap;font-size:.88rem;line-height:2;color:var(--text)">
+          <span style="color:var(--muted)">위에서 유형과 기간을 선택하고 리포트 생성 버튼을 누르세요.</span>
+        </div>
+      </section>
+
+      <section id="page-dashboard" class="page">
         <!-- 현장 실시간 현황 대시보드 -->
         <div class="kpi-row">
           <div class="kpi-card">

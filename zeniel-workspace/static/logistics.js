@@ -1,18 +1,134 @@
 // ===== 워크스페이스 전환 =====
-let currentWorkspace = 'logistics';
+let currentWorkspace = 'hq';
 
 function switchWorkspace(ws) {
   currentWorkspace = ws;
-  document.getElementById('nav-logistics').style.display = ws === 'logistics' ? '' : 'none';
-  document.getElementById('nav-special').style.display = ws === 'special' ? '' : 'none';
-  document.getElementById('ws-tab-logistics').classList.toggle('active', ws === 'logistics');
-  document.getElementById('ws-tab-special').classList.toggle('active', ws === 'special');
+  ['hq', 'logistics', 'special'].forEach(w => {
+    const nav = document.getElementById(`nav-${w}`);
+    const tab = document.getElementById(`ws-tab-${w}`);
+    if (nav) nav.style.display = w === ws ? '' : 'none';
+    if (tab) tab.classList.toggle('active', w === ws);
+  });
+  if (ws === 'hq') navigate('hq-dashboard');
+  else if (ws === 'logistics') navigate('dashboard');
+  else navigate('sd-dashboard');
+}
 
-  if (ws === 'logistics') {
-    navigate('dashboard');
-  } else {
-    navigate('sd-dashboard');
+// ===== 본사 현황 대시보드 =====
+async function loadHqDashboard() {
+  const [leads, pipeline, projects, contracts, meetings] = await Promise.all([
+    api.get('/api/v1/leads').catch(() => []),
+    api.get('/api/v1/pipeline').catch(() => []),
+    api.get('/api/v1/projects').catch(() => []),
+    api.get('/api/v1/contracts').catch(() => []),
+    api.get('/api/v1/meetings').catch(() => []),
+  ]);
+  document.getElementById('hq-leads').textContent = leads.length;
+  document.getElementById('hq-deals').textContent = pipeline.filter(r => r.stage !== '종료').length;
+  document.getElementById('hq-projects').textContent = projects.filter(r => r.status === '진행중').length;
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  document.getElementById('hq-contracts').textContent = contracts.filter(r => (r.signed_date || '').startsWith(thisMonth)).length;
+
+  // 파이프라인 스테이지별 집계
+  const stages = ['발굴', '제안', '협상', '계약', '완료'];
+  const stageCount = {};
+  stages.forEach(s => stageCount[s] = 0);
+  pipeline.forEach(r => { if (stageCount[r.stage] !== undefined) stageCount[r.stage]++; });
+  const maxC = Math.max(...Object.values(stageCount), 1);
+  document.getElementById('hq-pipeline-summary').innerHTML = stages.map(s => `
+    <div class="pipeline-row">
+      <span class="label">${s}</span>
+      <div class="pipeline-track"><div class="pipeline-fill" style="width:${stageCount[s]/maxC*100}%"></div></div>
+      <span class="pipeline-num">${stageCount[s]}</span>
+    </div>`).join('');
+
+  // 최근 미팅
+  const recent = [...meetings].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
+  document.getElementById('hq-recent-meetings').innerHTML = recent.length
+    ? recent.map(r => `<div class="timeline-item"><div class="timeline-dot"></div><div><h4>${r.title || '-'}</h4><p>${r.counterpart || '-'} · ${r.date || '-'}</p></div></div>`).join('')
+    : '<div style="color:var(--muted)">미팅 기록 없음</div>';
+}
+
+// ===== 자동 리포트 생성 =====
+async function generateAutoReport() {
+  const type = document.getElementById('ar-type').value;
+  const target = document.getElementById('ar-target').value;
+  const dateVal = document.getElementById('ar-date').value || new Date().toISOString().slice(0, 10);
+  const out = document.getElementById('ar-output');
+  out.textContent = '리포트 생성 중...';
+
+  const date = new Date(dateVal);
+  const period = type === 'weekly'
+    ? `${dateVal.slice(0, 7)} ${Math.ceil(date.getDate() / 7)}주차`
+    : `${dateVal.slice(0, 7)}`;
+
+  let lines = [];
+  lines.push(`◆ ZENIEL WORKSPACE — ${type === 'weekly' ? '주간' : '월간'} 리포트`);
+  lines.push(`  기간: ${period}   생성일: ${new Date().toISOString().slice(0,10)}`);
+  lines.push('─'.repeat(60));
+
+  try {
+    if (target === 'logistics' || target === 'all') {
+      const [wl, issues, tbm, edu] = await Promise.all([
+        api.get('/api/v1/worklogs'), api.get('/api/v1/issues'),
+        api.get('/api/v1/tbm'), api.get('/api/v1/safety_edu'),
+      ]);
+      const prefix = type === 'weekly' ? dateVal.slice(0,7) : dateVal.slice(0,7);
+      const wlP = wl.filter(r => (r.date || '').startsWith(prefix));
+      const totalActual = wlP.reduce((s,r) => s + (r.actual_qty||0), 0);
+      const totalTarget = wlP.reduce((s,r) => s + (r.target_qty||0), 0);
+      const openIssues = issues.filter(r => r.status !== '처리완료');
+      lines.push('\n【 물류현장 】');
+      lines.push(`  · 총 처리물량: ${totalActual.toLocaleString()}건 / 목표 ${totalTarget.toLocaleString()}건 (달성률 ${totalTarget ? (totalActual/totalTarget*100).toFixed(1) : 0}%)`);
+      lines.push(`  · TBM 실시: ${tbm.filter(r=>(r.date||'').startsWith(prefix)).length}회`);
+      lines.push(`  · 안전교육: ${edu.filter(r=>(r.date||'').startsWith(prefix)).length}건`);
+      lines.push(`  · 미처리 이슈: ${openIssues.length}건`);
+      if (openIssues.length > 0) {
+        openIssues.slice(0,3).forEach(r => lines.push(`    - [${r.severity}] ${r.title}`));
+      }
+    }
+
+    if (target === 'special' || target === 'all') {
+      const [del, staff, bi] = await Promise.all([
+        api.get('/api/v1/card_deliveries'), api.get('/api/v1/branch_staff'), api.get('/api/v1/branch_issues'),
+      ]);
+      const prefix = dateVal.slice(0,7);
+      const delP = del.filter(r => (r.date||'').startsWith(prefix));
+      const totalRec = delP.reduce((s,r) => s+(r.received||0),0);
+      const totalDel = delP.reduce((s,r) => s+(r.delivered||0),0);
+      const openBi = bi.filter(r => r.status !== '처리완료');
+      lines.push('\n【 특송현장 】');
+      lines.push(`  · 카드 수령: ${totalRec.toLocaleString()}장 / 배송완료: ${totalDel.toLocaleString()}장 (완료율 ${totalRec ? (totalDel/totalRec*100).toFixed(1) : 0}%)`);
+      lines.push(`  · 지사 이탈인원: ${staff.filter(r=>(r.date||'').startsWith(prefix)).reduce((s,r)=>s+(r.resigned||0),0)}명`);
+      lines.push(`  · 미처리 지사이슈: ${openBi.length}건`);
+    }
+
+    if (target === 'hq' || target === 'all') {
+      const [leads, pipeline, contracts] = await Promise.all([
+        api.get('/api/v1/leads'), api.get('/api/v1/pipeline'), api.get('/api/v1/contracts'),
+      ]);
+      const prefix = dateVal.slice(0,7);
+      const newLeads = leads.filter(r => (r.created_at||'').startsWith(prefix));
+      const wonDeals = pipeline.filter(r => r.stage === '완료' && (r.last_contact||'').startsWith(prefix));
+      lines.push('\n【 본사 CRM 】');
+      lines.push(`  · 신규 리드: ${newLeads.length}건`);
+      lines.push(`  · 진행 중 딜: ${pipeline.filter(r=>r.stage !== '완료' && r.stage !== '종료').length}건`);
+      lines.push(`  · 이번달 계약: ${contracts.filter(r=>(r.signed_date||'').startsWith(prefix)).length}건`);
+    }
+
+    lines.push('\n' + '─'.repeat(60));
+    lines.push('  ※ 본 리포트는 ZENIEL WORKSPACE 데이터 기반 자동 생성됩니다.');
+    out.textContent = lines.join('\n');
+  } catch(e) {
+    out.textContent = '리포트 생성 중 오류가 발생했습니다.';
   }
+}
+
+function printReport() {
+  const content = document.getElementById('ar-output').textContent;
+  const w = window.open('', '_blank');
+  w.document.write(`<pre style="font-family:monospace;font-size:14px;padding:24px">${content}</pre>`);
+  w.print();
 }
 
 // ===== navigate 확장 =====
@@ -34,6 +150,7 @@ function navigate(page) {
     'safety-edu': '교육 관리', staffing: '인원 배치',
     'safety-mgmt': '안전보건 관리',
     'sd-dashboard': '특송 현황', 'sd-delivery': '배송 물량', 'sd-staff': '인원 현황', 'sd-issues': '지사 특이사항',
+    'hq-dashboard': '본사 현황', 'auto-report': '자동 리포트',
   };
   document.getElementById('page-title').textContent = titles[page] || page;
   const loaders = {
@@ -48,6 +165,7 @@ function navigate(page) {
     'safety-mgmt': loadSafetyMgmt,
     'sd-dashboard': loadSdDashboard, 'sd-delivery': loadSdDelivery,
     'sd-staff': loadSdStaff, 'sd-issues': loadSdIssues,
+    'hq-dashboard': loadHqDashboard,
   };
   if (loaders[page]) loaders[page]();
 }
