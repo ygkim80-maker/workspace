@@ -21,7 +21,6 @@ try:
     print("[DB] create_all succeeded")
 except Exception as e:
     print(f"[DB] create_all failed: {e}")
-    raise
 
 app = FastAPI(title="물류 현장 — ZENIEL")
 app.mount("/static", StaticFiles(directory="static"), name="static")
