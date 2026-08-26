@@ -16,7 +16,10 @@ from routers import (contracts, customers, documents, emails, feed, hourly, insi
                       weekly_reports, worklogs, safety_edu, staffing, safety_mgmt,
                       special_delivery)
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[DB] create_all failed: {e}")
 
 app = FastAPI(title="물류 현장 — ZENIEL")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -185,6 +188,11 @@ def weekly_report(db: Session = Depends(get_db)):
 
 @app.on_event("startup")
 def seed_data():
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[DB] startup create_all failed: {e}")
+        return
     db = SessionLocal()
     try:
         # 안전보건 기초 데이터 (항상 먼저 실행)
